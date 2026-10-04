@@ -1,11 +1,54 @@
-# BRAIN.md: Black Lens (in progress)
+# BRAIN.md — Black Lens
 
-Written by Singularity. This file holds the identity of the project. The
-Visual Identity block below was locked first by chameleon (Phase 1.5).
-Remaining sections are added after the features question.
+> This file is maintained by the Singularity skill. It is the identity document of this project.
+> When Claude drifts, hallucinates, or loses context, this file is the source of truth.
+> Do not confuse this with PLANNER.md (tasks/phases) or DESIGN_GUIDE.md (design tokens).
+
+---
+
+## The One-Line Truth
+
+Black Lens is a free, in-browser tool that shows what hidden metadata is inside photos, removes it, and optionally writes the owner's own author and copyright details, with the photos never leaving the device.
+
+---
+
+## Why It Exists
+
+Photos carry GPS location, camera serial numbers, timestamps and editing history, and most people publish them without knowing. Existing tools are usually desktop-only, upload-based, or read-only, and none combines a client-side workflow, batch, folder and ZIP input, a clear "what we found" view, and writing your own fields back. It is built first for Fahim, who strips location from his own photos and stamps Artist and Copyright on work he publishes, and second as a showcase piece with its own URL and identity. Honest framing: nobody else is worse off if it never exists. The stakes are the showcase, his own use, and the learning.
+
+---
+
+## What It Must Become
+
+A tool people trust on sight because the privacy claim can be checked, and one Fahim reaches for by reflex. Clean mode works end to end first. The same core logic later ships as a local CLI and a local MCP server. It stays small and single-purpose.
+
+---
+
+## Core Decisions (Locked)
+
+These decisions are final. Claude must not question or work around them without explicit confirmation from Fahim.
+
+- [LOCKED] Name is Black Lens, repo and folder `black-lens`
+- [LOCKED] Standalone app: its own repo, Vercel project, URL and brand. Reason: showcase and learning build
+- [LOCKED] Client-side only. Reading, stripping and writing happen in the browser. No photo or metadata is ever uploaded
+- [LOCKED] Three modes: View (read-only, with a GPS warning), Clean (strip everything, the default), Tag (strip, then write only the fields the user chose). Tag ships after Clean
+- [LOCKED] Input: single file, batch, folder, or ZIP
+- [LOCKED] Formats in v1: JPEG, PNG, WebP. HEIC and others show as "not supported yet" with a plain explanation
+- [LOCKED] Stripping is lossless: pixels are untouched, no re-encoding
+- [LOCKED] Tag presets are stored on the device only (localStorage)
+- [LOCKED] Analytics is option C: a private, owner-only dashboard on Neon + Drizzle + Better Auth showing aggregate counts only. Signups are disabled and there is one owner login. The dashboard must exist before the public showcase
+- [LOCKED] Usage counters never contain filenames, metadata contents, or anything from inside a file. The privacy page names the counters
+- [LOCKED] CLI and MCP server come after the web tool, as thin wrappers over the same core. The MCP server runs locally only, never hosted remotely
+- [LOCKED] Mode is both light and dark with a theme toggle
+- [LOCKED] Hosting is Vercel only
+
+---
 
 ## Visual Identity (Locked)
 
+> Written by chameleon in Phase 1.5. Values are locked. If a tint is needed, use an opacity modifier and flag it for Fahim.
+
+```
 THEME: Custom: Black Lens (quiet black and red utility)
 THEME-CHARACTER: Near-black, calm, plain-language file tool with one red brand colour. Queue on the left, inspector on the right, short grouped lists instead of dense consoles.
 MODE: both (theme toggle on). Dark is the primary design; light is the derived pair.
@@ -62,3 +105,122 @@ Scoped constraints:
   - Never #00e676. WCAG 2.2 AA, both modes.
   - Supported formats stated everywhere as JPEG, PNG, WebP. HEIC is "not supported yet" with a plain explanation.
 Image-brief style: photography (default). The user's own photos are the main visuals. Any marketing image: high-contrast monochrome photography (architecture, coastline), deep blacks, no people, no stock-photo smiles.
+```
+
+---
+
+## Features
+
+> Written by Singularity in Phase 1.6. Build skills add **only** what is listed here. To add a feature later, update this section first.
+
+Always on (every site):
+- Skip link, 404 page, `focus-visible` styles, print stylesheet, accessibility basics (landmarks, labels, AA contrast)
+- Visible "Updated" date on dated content: none
+
+Opt-in (checked = build it):
+- [x] Theme toggle
+- [ ] Site search
+- [ ] Newsletter signup
+- [ ] Cookie banner: tools that set cookies: none (usage counters set no cookies; the owner login session cookie is essential)
+- [ ] Floating contact button
+- [x] Back to top: shows only when the page is taller than the viewport and the user has scrolled; must work on phones (44px target, respects safe-area insets, reduced motion)
+- [ ] Scroll progress bar
+- [x] Copy to clipboard: where: individual metadata values on View (coordinates, serial numbers) and the full list
+- [ ] UTM tags on campaign links
+- [ ] Heavy motion / 3D
+
+Bottom-right slot (one element only): back to top
+
+## Operator
+
+> Written from interview Q10. Warden builds the legal pages and the footer business details from it.
+
+- Runs the site: Mahtamun Hoque Fahim (individual)
+- Address: Chattogram, Bangladesh [CONFIRM: street address, warden will ask before launch]
+- Contact: mahtamunhoquefahim@pm.me
+- Registration: none
+- Visitors and customers in: everywhere
+- Children could use it: anyone can visit; there is no sign-up and no personal data is collected from visitors
+- Sells: nothing
+
+---
+
+## What It Must Never Become
+
+- Never an app with accounts for visitors
+- Never ad-supported
+- Never per-user tracking: only aggregate counts, owner-only
+- Never an uploader: no photo, metadata or filename leaves the device
+- Never an image editor or compressor
+- Never a tool that makes a network request carrying image data (no map tiles, no remote previews)
+- Never a hosted remote MCP server
+
+---
+
+## Current State
+
+```
+Status: Alpha (scaffold only)
+Last updated: 2026-10-04
+
+What works:
+- Next.js 16 scaffold, Vitest and Testing Library, jsx-a11y, AGENTS.md Session Start block
+- Visual identity locked (light and dark pair, contrast checked)
+- Stitch screens exist for home, View, Clean, Clean results, Tag and workspace (dark only, copy to be replaced)
+
+What's broken or incomplete:
+- No product code yet. shadcn init still to run locally
+- No dashboard screens designed yet (owner sign-in and dashboard)
+- Light mode never designed, only derived
+
+What's next (in spirit, not tasks):
+- Clean mode end to end, then View, then Tag, then the owner dashboard, then CLI and MCP
+```
+
+---
+
+## The Stack (Frozen)
+
+These are confirmed for this project. Do not suggest alternatives unless Fahim initiates a migration.
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 App Router, TypeScript, Tailwind CSS v4, shadcn/ui |
+| Database | Neon (PostgreSQL) + Drizzle ORM, for the owner dashboard counters only |
+| Auth | Better Auth, single owner, signups disabled |
+| Payments | none |
+| File uploads | none |
+| Email | none |
+| Analytics | custom owner dashboard, aggregate counts, no cookies |
+| Content | TypeScript files in `src/content` |
+| Hosting | Vercel |
+
+`none` means none: build, planning and audit skills skip everything for that
+layer (no packages, env vars, tasks or checks).
+
+---
+
+## Constraints & Non-Negotiables
+
+- No emojis in UI: lucide-react icons only
+- No Supabase
+- Vercel only: no Cloudflare Workers, no OpenNext
+- Fonts load through next/font (self-hosted at build). No runtime requests to third-party hosts
+- Photos never leave the device. The only network request the app makes is the aggregate counter, to its own origin
+- Never claim "zero external calls". The honest claim is that photos never leave the device
+- Supported formats are stated everywhere as JPEG, PNG, WebP
+- Plain human wording. No fake security vocabulary (see Scoped constraints)
+
+---
+
+## Context Hooks (for Claude)
+
+- The Stitch screens are layout references only. Their copy, version strings, maps, stock portrait and "console" language are all wrong for this product and must not be copied
+- Claims must match what is built. Do not claim WebAssembly, ExifTool, air-gapping, an enclave or cryptographic signing unless it actually exists
+- Keep the core read, strip and write logic in pure functions with no DOM dependency so a CLI and a local MCP server can reuse it later
+- The brand red is only for primary buttons, the active tab, focus and progress. The GPS warning uses the destructive tokens, not the brand red
+- Fahim's honest gap is depth under what he ships: explain the byte-level format work (JPEG segments, PNG chunks, WebP RIFF) as it is built so he understands each layer
+
+---
+
+*Last updated by Singularity on 2026-10-04*
