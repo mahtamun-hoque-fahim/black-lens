@@ -31,10 +31,11 @@ These decisions are final. Claude must not question or work around them without 
 - [LOCKED] Name is Black Lens, repo and folder `black-lens`
 - [LOCKED] Standalone app: its own repo, Vercel project, URL and brand. Reason: showcase and learning build
 - [LOCKED] Client-side only. Reading, stripping and writing happen in the browser. No photo or metadata is ever uploaded
-- [LOCKED] Three modes: View (read-only, with a GPS warning), Clean (strip everything, the default), Tag (strip, then write only the fields the user chose). Tag ships after Clean
+- [LOCKED] Three modes: View (read-only, with a GPS warning), Clean (strip all identifying metadata, the default), Tag (strip identifying metadata, then write only the fields the user chose). Tag ships after Clean
 - [LOCKED] Input: single file, batch, folder, or ZIP
 - [LOCKED] Formats in v1: JPEG, PNG, WebP. HEIC and others show as "not supported yet" with a plain explanation
 - [LOCKED] Stripping is lossless: pixels are untouched, no re-encoding
+- [LOCKED] What Clean removes and keeps: Clean removes everything that identifies the person, device, place, time or software. It keeps only what is needed to display the image correctly: the EXIF Orientation flag, the colour profile (ICC), and structural data the format needs to render (for example the JPEG colour-mode flag, PNG gamma and chromaticity chunks). A "remove colour profile too" switch exists and is off by default. The result screen always lists exactly what was kept and why. The claim is "all identifying metadata removed", never "zero tags remain". The per-format segment map is written before the strip code (Council PRE requirement 1)
 - [LOCKED] Tag presets are stored on the device only (localStorage)
 - [LOCKED] Analytics is option C: a private, owner-only dashboard on Neon + Drizzle + Better Auth showing aggregate counts only. Signups are disabled and there is one owner login. The dashboard must exist before the public showcase
 - [LOCKED] Usage counters never contain filenames, metadata contents, or anything from inside a file. The privacy page names the counters
@@ -217,6 +218,7 @@ layer (no packages, env vars, tasks or checks).
 
 - The Stitch screens are layout references only. Their copy, version strings, maps, stock portrait and "console" language are all wrong for this product and must not be copied
 - Claims must match what is built. Do not claim WebAssembly, ExifTool, air-gapping, an enclave or cryptographic signing unless it actually exists
+- Copy about cleaning says "all identifying metadata removed" and lists what was kept (Orientation, colour profile). Never write "zero metadata" or "zero tags remain" in the UI, the README or the demo
 - Keep the core read, strip and write logic in pure functions with no DOM dependency so a CLI and a local MCP server can reuse it later
 - The brand red is only for primary buttons, the active tab, focus and progress. The GPS warning uses the destructive tokens, not the brand red
 - Fahim's honest gap is depth under what he ships: explain the byte-level format work (JPEG segments, PNG chunks, WebP RIFF) as it is built so he understands each layer
