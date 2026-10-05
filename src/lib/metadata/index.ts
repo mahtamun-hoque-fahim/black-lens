@@ -3,10 +3,12 @@ import { extractImageData } from "./jpeg/parse"
 import { stripJpeg, type KeptItem, type RemovedItem, type StripOptions } from "./jpeg/strip"
 import { verifyCleanJpeg } from "./jpeg/verify"
 import { sniffFormat, type MetadataFormat } from "./sniff"
+import { summarizeJpeg, type MetadataSummary } from "./summary"
 
 export { MetadataError, type MetadataErrorCode } from "./errors"
 export { sniffFormat, type MetadataFormat } from "./sniff"
 export type { KeptItem, RemovedItem, StripOptions } from "./jpeg/strip"
+export type { MetadataSummary } from "./summary"
 
 export interface StripMetadataResult {
   format: "jpeg"
@@ -22,6 +24,23 @@ export interface StripMetadataResult {
   }
 }
 
+/** Throws the right MetadataError for formats we cannot handle (yet); returns "jpeg" otherwise. */
+function requireSupported(input: Uint8Array): "jpeg" {
+  const format: MetadataFormat = sniffFormat(input)
+  if (format === "heic") throw new MetadataError("unsupported", "HEIC photos are not supported yet.")
+  if (format === "png" || format === "webp") {
+    throw new MetadataError("unsupported", `${format.toUpperCase()} cleaning is not supported yet.`)
+  }
+  if (format !== "jpeg") throw new MetadataError("unknown-format", "This does not look like a JPEG, PNG or WebP image.")
+  return "jpeg"
+}
+
+/** Look inside a photo and report, by category, what it carries. Changes nothing. */
+export function summarizeMetadata(input: Uint8Array): MetadataSummary {
+  requireSupported(input)
+  return summarizeJpeg(input)
+}
+
 function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
@@ -34,13 +53,7 @@ function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
  * caller gets no file: we never hand back something we could not verify.
  */
 export function stripMetadata(input: Uint8Array, options: StripOptions = {}): StripMetadataResult {
-  const format: MetadataFormat = sniffFormat(input)
-
-  if (format === "heic") throw new MetadataError("unsupported", "HEIC photos are not supported yet.")
-  if (format === "png" || format === "webp") {
-    throw new MetadataError("unsupported", `${format.toUpperCase()} cleaning is not supported yet.`)
-  }
-  if (format !== "jpeg") throw new MetadataError("unknown-format", "This does not look like a JPEG, PNG or WebP image.")
+  requireSupported(input)
 
   const result = stripJpeg(input, options)
   const check = verifyCleanJpeg(result.bytes, options)
