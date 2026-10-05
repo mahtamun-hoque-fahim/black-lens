@@ -82,7 +82,7 @@ Palette (variable names from references/tokens.md):
   destructive         #ffb4ab     success #4ade80   warning #fbbf24   info #90cdff
   border              #353437     input               #78767a   ring  #dc2626
   chart-1..5          #dc2626 #ff9996 #90cdff #b8b2b4 #fbbf24
-Palette check: PASS, 2026-10-04 (scripts/check_palette.py, light and dark, 0 pairs below WCAG AA)
+Palette check: PASS, 2026-10-05 (scripts/check_palette.py, light and dark, 0 pairs below WCAG AA)
 Notes: white text on the red button is 4.54:1 (bare pass), so do not lighten the red or shrink button text. Red on the dark page is 3.99:1: fine for buttons, icons and focus rings, never for small text.
 
 Type (Google Fonts only, load with next/font/google):
@@ -162,7 +162,7 @@ Bottom-right slot (one element only): back to top
 
 ```
 Status: Alpha (scaffold only)
-Last updated: 2026-10-04
+Last updated: 2026-10-05
 
 What works:
 - Next.js 16 scaffold, Vitest and Testing Library, jsx-a11y, AGENTS.md Session Start block
@@ -225,4 +225,4 @@ layer (no packages, env vars, tasks or checks).
 
 ---
 
-*Last updated by Singularity on 2026-10-04*
+*Last updated by Singularity on 2026-10-05*

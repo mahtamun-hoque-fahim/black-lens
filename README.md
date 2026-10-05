@@ -1,34 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Black Lens
 
-## Getting Started
+A free, in-browser tool that shows the hidden metadata inside photos, removes the identifying parts, and optionally writes your own author and copyright details. Photos never leave the device.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js 16 (App Router) + TypeScript
+- Tailwind CSS v4 + shadcn/ui
+- Neon (PostgreSQL) + Drizzle ORM, for the owner dashboard counters only (dashboard phase)
+- Better Auth, single owner, signups disabled (dashboard phase)
+- Vercel
+
+## Prerequisites
+
+- Node 20.9+
+- A Neon project with pooled and unpooled connection strings (dashboard phase only)
+
+## Local setup
+
+1. Clone the repo: `git clone https://github.com/mahtamun-hoque-fahim/black-lens.git`
+2. Install: `npm install`
+3. Copy `.env.example` to `.env.local` and fill in values (see PLANNER.md, Env Vars)
+4. Run dev: `npm run dev`
+
+## Env vars
+
+See PLANNER.md, Env Vars for descriptions. Names only (exactly the names in `.env.example`):
+
+```
+NEXT_PUBLIC_SITE_URL
+DATABASE_URL
+DATABASE_URL_UNPOOLED
+BETTER_AUTH_SECRET
+BETTER_AUTH_URL
+OWNER_EMAIL
+OWNER_PASSWORD
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev          # local dev server
+npm run build        # production build
+npm run start        # serve production build
+npm run lint         # ESLint
+npm test             # unit and component tests (Vitest)
+```
 
-## Learn More
+## Deploy
 
-To learn more about Next.js, take a look at the following resources:
+- Push to `main`: Vercel auto-deploys to production
+- Push to any other branch: Vercel preview deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Before promoting a deploy, verify env vars are set in Vercel (Production and Preview).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Folder structure
 
-## Deploy on Vercel
+```
+src/app/         routes (App Router)
+src/components/  UI primitives (ui/) and sections
+src/lib/         utils and the pure metadata core
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For the detailed structure, see PLANNER.md, Architecture.
