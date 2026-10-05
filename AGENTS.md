@@ -17,11 +17,11 @@ A free, in-browser tool that shows the hidden metadata inside photos, removes th
 (Rewritten at the end of every session with substantive work. Everything here is true today; anything older lives in the Session Log.)
 
 - Updated: 2026-10-05
-- Status: Building MVP (foundation)
-- Works: Next.js 16 scaffold, Vitest and Testing Library, jsx-a11y; BRAIN.md, SITETREE.md, COUNCIL.md, PLANNER.md, DESIGN_GUIDE.md locked and committed; look locked (light and dark pair, contrast checked)
-- In progress: nothing half-built. No product code yet
-- Next: run `shadcn init` locally and write the locked tokens into `globals.css`; per-format segment map and fixtures; failing tests for the JPEG reader and stripper
-- Watch out: shadcn init could not run in the sandbox (no access to ui.shadcn.com); the Stitch screens are layout references only, their copy and claims are wrong for this product; HEIC is "not supported yet" in v1; a classic GitHub token was used in the setup session and must be revoked
+- Status: Building MVP, slice 1 (Clean on JPEG): core done, UI not started
+- Works: Next.js 16 scaffold, shadcn init, locked light and dark tokens, Inter and JetBrains Mono; metadata core for JPEG in `src/lib/metadata/` (sniffer, parser, EXIF reader, stripper, verifier, `stripMetadata()`), 83 passing tests, 8 fixtures; `docs/formats/jpeg.md` segment map. Cleaned outputs were also checked with exiftool (only Orientation left) and Pillow (pixels identical)
+- In progress: nothing half-built
+- Next: app shell (header, theme toggle, drop zone, mode tabs), then single-file Clean with result screen and download; then the PNG slice (chunk map first)
+- Watch out: `next build` needs network for `next/font/google` (it downloads and self-hosts the fonts at build time), so it fails in an offline sandbox but works on Vercel and locally; `npx tsc --noEmit` needs `npm run typegen` first (Next 16 generates `LayoutProps`); the Stitch screens are layout references only, their copy and claims are wrong for this product; HEIC is "not supported yet" in v1, and PNG and WebP currently throw "not supported yet" until their slices land; `npm audit` reports 9 high findings, all in dev tooling (braces via eslint-plugin-next and shadcn), none in shipped code, do not run `audit fix --force`; a classic GitHub token was used across setup sessions and must be revoked when the work is done
 
 ## Git Identity (Session Start - run before any commit, every session)
 
@@ -37,9 +37,10 @@ Execute automatically at the start of every session, before the first commit. Ne
 - Install: `npm install`
 - Dev server: `npm run dev`
 - Build: `npm run build`
-- Type check: `npx tsc --noEmit`
+- Type check: `npm run typegen` then `npx tsc --noEmit`
 - Lint: `npx eslint .`
-- Tests: `npm test` (Vitest)
+- Tests: `npm test` (Vitest). Core tests use `// @vitest-environment node`; the core has no DOM dependency
+- Regenerate JPEG fixtures: `python scripts/make-fixtures.py` (needs `pip install pillow piexif`)
 - DB push (dev only): `npx drizzle-kit push` (dashboard phase)
 - DB migrate (production): `npx drizzle-kit generate` then `npx drizzle-kit migrate` (dashboard phase)
 
@@ -68,6 +69,11 @@ Execute automatically at the start of every session, before the first commit. Ne
 ## Session Log
 
 (Newest first: add each new entry at the top. No cap: never delete or shorten older entries. When a later session reverses a decision, mark the old line `[SUPERSEDED YYYY-MM-DD]`. This section updates automatically at the end of any session with substantive work, independent of whether "update repo" was said.)
+
+### 2026-10-05 (session 2: JPEG core)
+- Did: Reviewed the repo state after the failed first install session (install, lint, tests and typecheck all fine; `LayoutProps` error was only missing generated types). Wrote the JPEG segment map, 8 fixtures from independent encoders, failing tests, then the sniffer, parser, EXIF reader and writer, stripper, verifier and `stripMetadata()`. Verified with exiftool, Pillow pixel comparison, raw byte grep and three deliberate mutations
+- Decided: Default deny allow-list; Clean fails closed (re-reads output and compares image data, throws instead of returning an unverified file); trailing data and MPF are removed (drops HDR gain maps); the JFIF thumbnail is dropped; Orientation is carried over even when it is 1
+- Next: app shell and single-file Clean UI, then PNG
 
 ### 2026-10-05
 - Did: Singularity interview (Q1 to Q10), Stitch design rounds, look locked, scaffold pushed (Next.js 16, Vitest, jsx-a11y), BRAIN.md, SITETREE.md (6 routes), Council PRE-BUILD (conditional go), repo docs scaffolded
