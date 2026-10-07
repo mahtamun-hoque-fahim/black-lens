@@ -17,11 +17,11 @@ A free, in-browser tool that shows the hidden metadata inside photos, removes th
 (Rewritten at the end of every session with substantive work. Everything here is true today; anything older lives in the Session Log.)
 
 - Updated: 2026-10-05
-- Status: Building MVP, slice 1 (Clean on JPEG): core done, UI not started
-- Works: Next.js 16 scaffold, shadcn init, locked light and dark tokens, Inter and JetBrains Mono; metadata core for JPEG in `src/lib/metadata/` (sniffer, parser, EXIF reader, stripper, verifier, `stripMetadata()`), 83 passing tests, 8 fixtures; `docs/formats/jpeg.md` segment map. Cleaned outputs were also checked with exiftool (only Orientation left) and Pillow (pixels identical)
+- Status: Phase 3 built (Clean on JPEG, end to end); not yet reviewed visually
+- Works: metadata core for JPEG (`src/lib/metadata/`: sniffer, parser, EXIF reader, stripper, verifier, `stripMetadata()`, `summarizeMetadata()`); UI in `src/components/` (theme toggle, header, footer, back to top, mode tabs, drop zone, file card, result screen, `Workspace`); 404 page; 106 passing tests; live on Vercel at black-lens.vercel.app
 - In progress: nothing half-built
-- Next: app shell (header, theme toggle, drop zone, mode tabs), then single-file Clean with result screen and download; then the PNG slice (chunk map first)
-- Watch out: `next build` needs network for `next/font/google` (it downloads and self-hosts the fonts at build time), so it fails in an offline sandbox but works on Vercel and locally; `npx tsc --noEmit` needs `npm run typegen` first (Next 16 generates `LayoutProps`); the Stitch screens are layout references only, their copy and claims are wrong for this product; HEIC is "not supported yet" in v1, and PNG and WebP currently throw "not supported yet" until their slices land; `npm audit` reports 9 high findings, all in dev tooling (braces via eslint-plugin-next and shadcn), none in shipped code, do not run `audit fix --force`; a classic GitHub token was used across setup sessions and must be revoked when the work is done
+- Next: Fahim reviews the live page; then Phase 4 starting with the PNG chunk map (`docs/formats/png.md`) before any PNG code
+- Watch out: no browser exists in the build sandbox, so layout and colours were never seen by Claude, only the server HTML and the tests; `next build` needs network for `next/font/google` (fine on Vercel, fails offline); `npx tsc --noEmit` needs `npm run typegen` first; View and Tag tabs are disabled on purpose until their phases; PNG and WebP throw "not supported yet" and the drop zone copy says JPEG only for now; the next-themes inline script needs a nonce or hash when the CSP lands in Phase 7; `src/components/button.tsx` sits outside `components/ui` so `shadcn add` cannot overwrite it; `npm audit` reports 9 high findings, all in dev tooling, never run `audit fix --force`; a classic GitHub token was used for these sessions and must be revoked when the work is done
 
 ## Git Identity (Session Start - run before any commit, every session)
 
@@ -69,6 +69,11 @@ Execute automatically at the start of every session, before the first commit. Ne
 ## Session Log
 
 (Newest first: add each new entry at the top. No cap: never delete or shorten older entries. When a later session reverses a decision, mark the old line `[SUPERSEDED YYYY-MM-DD]`. This section updates automatically at the end of any session with substantive work, independent of whether "update repo" was said.)
+
+### 2026-10-05 (session 3: Phase 3 UI)
+- Did: Confirmed Vercel was connected and deployed. Added `summarizeMetadata()` (tests first). Built the app shell and the whole Clean flow with 8 behaviour tests for the Workspace. Checked the server HTML and the 404 by running the dev server
+- Decided: next-themes for the theme; Radix Tabs and Switch for keyboard and ARIA behaviour; View and Tag tabs visible but disabled; one photo at a time until Phase 4; "Already clean" photos get no Clean button
+- Next: visual review by Fahim, then Phase 4 (PNG first)
 
 ### 2026-10-05 (session 2: JPEG core)
 - Did: Reviewed the repo state after the failed first install session (install, lint, tests and typecheck all fine; `LayoutProps` error was only missing generated types). Wrote the JPEG segment map, 8 fixtures from independent encoders, failing tests, then the sniffer, parser, EXIF reader and writer, stripper, verifier and `stripMetadata()`. Verified with exiftool, Pillow pixel comparison, raw byte grep and three deliberate mutations

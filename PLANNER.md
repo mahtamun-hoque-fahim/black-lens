@@ -143,11 +143,11 @@ Status: `[~]` JPEG done; PNG and WebP maps and fixtures come with their slice
 - [ ] WebP chunk map and fixtures
 
 ### Phase 3: Clean on JPEG, end to end
-Status: `[~]` core done, UI not started
+Status: `[x]` built; waiting on Fahim's visual review (no browser in the build sandbox)
 
-- [x] Pure core: JPEG reader, stripper and verifier (Orientation and ICC kept), `stripMetadata()` entry point
-- [ ] App shell: header, theme toggle, home, drop zone, mode tabs
-- [ ] Single-file Clean with result summary and verified re-scan
+- [x] Pure core: JPEG reader, stripper and verifier (Orientation and ICC kept), `stripMetadata()` entry point, `summarizeMetadata()`
+- [x] App shell: skip link, header, theme toggle, home, footer, back to top, 404, mode tabs (View and Tag shown but switched off)
+- [x] Single-file Clean: drop zone, what-it-carries summary with location warning, colour profile switch, result screen (removed, kept, verified re-scan), download
 
 ### Phase 4: PNG, WebP, batches
 Status: `[ ]` pending
@@ -190,9 +190,9 @@ Status: `[ ]` pending
 ## Next Steps
 
 In order:
-1. App shell: header, theme toggle, home, drop zone, mode tabs
-2. Single-file Clean on `/` with the result screen (removed, kept, verified re-scan) and download
-3. Decide the Clean result wording with DESIGN_GUIDE.md copy rules, then PNG slice (chunk map first)
+1. Fahim reviews the live page on Vercel (light and dark, phone width) and reports anything off
+2. Phase 4, PNG first: chunk map in `docs/formats/png.md`, fixtures, failing tests, stripper
+3. WebP the same way, then batches and ZIP; put "JPEG, PNG or WebP" back in the drop zone copy once both work
 
 ---
 
@@ -203,3 +203,5 @@ In order:
 **2026-10-05.** Analytics is an owner-only dashboard with aggregate counts (Neon + Drizzle + Better Auth) instead of a third-party tool.
 **2026-10-05.** Clean fails closed: `stripMetadata()` re-reads its own output and compares the image data to the input; if either check fails it throws and returns no file.
 **2026-10-05.** Default deny: only segments on the allow-list in `docs/formats/jpeg.md` are copied; unknown segments are removed. MPF and trailing data are removed, so Ultra HDR and gain maps are dropped and the photo shows in standard range.
+**2026-10-05.** Drop zone copy says "Works with JPEG photos for now" until PNG and WebP land; being honest on a public site beats matching the guide's format line. Restore the guide wording in Phase 4.
+**2026-10-05.** Theme toggle uses next-themes (system by default, class on html). Its inline script will need a nonce or hash when the CSP is added in Phase 7.
