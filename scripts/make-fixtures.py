@@ -326,3 +326,93 @@ save("png-corrupt.png", png_meta[: len(png_meta) // 2])
 
 # 17. png-unknown-critical.png: an uppercase chunk we do not understand
 save("png-unknown-critical.png", insert_after_ihdr(png_bytes(noise_image()), png_chunk(b"ABCD", b"mystery")))
+
+
+# ---------------------------------------------------------------------------
+# WebP fixtures. RIFF container, little-endian, no checksums.
+# ---------------------------------------------------------------------------
+def webp_parse(d):
+    size = struct.unpack("<I", d[4:8])[0]
+    end = 8 + size
+    out, pos = [], 12
+    while pos < end:
+        t = d[pos : pos + 4]
+        n = struct.unpack("<I", d[pos + 4 : pos + 8])[0]
+        out.append((t, d[pos + 8 : pos + 8 + n]))
+        pos += 8 + n + (n & 1)
+    return out
+
+
+def webp_build(chunks):
+    body = b"WEBP"
+    for t, p in chunks:
+        body += t + struct.pack("<I", len(p)) + p + (b"\x00" if len(p) & 1 else b"")
+    return b"RIFF" + struct.pack("<I", len(body)) + body
+
+
+def webp_bytes(img, **kwargs):
+    buf = io.BytesIO()
+    img.save(buf, "WEBP", **kwargs)
+    return buf.getvalue()
+
+
+webp_xmp = (
+    b'<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">'
+    b'<rdf:Description xmlns:xmp="http://ns.adobe.com/xap/1.0/"><xmp:CreatorTool>Fixture Editor 9</xmp:CreatorTool>'
+    b"</rdf:Description></rdf:RDF></x:xmpmeta>"
+)
+
+# 18. webp-metadata.webp: VP8X + ICCP + VP8 + EXIF + XMP, plus an unknown vendor chunk
+wm = webp_parse(webp_bytes(noise_image(), quality=80, exif=meta_exif, xmp=webp_xmp, icc_profile=srgb_icc()))
+webp_meta = webp_build(wm + [(b"FXTR", b"FixtureOS unknown vendor data")])
+save("webp-metadata.webp", webp_meta)
+
+# 19. webp-lossless-alpha.webp: VP8L (alpha inside), EXIF with Orientation 3, XMP
+save("webp-lossless-alpha.webp", webp_bytes(noise_image("RGBA"), lossless=True, exif=pal_exif, xmp=webp_xmp))
+
+# 20. webp-alpha-lossy.webp: ALPH + VP8 (separate alpha chunk), XMP only
+save("webp-alpha-lossy.webp", webp_bytes(noise_image("RGBA"), quality=80, xmp=webp_xmp))
+
+# 21. webp-simple.webp: RIFF + VP8, no VP8X, cannot hold metadata
+webp_simple = webp_bytes(noise_image(), quality=80)
+save("webp-simple.webp", webp_simple)
+
+# 22. webp-animated.webp: ANIM + 3 ANMF frames, metadata, and an unknown sub-chunk hidden inside frame 1
+wa = webp_parse(
+    webp_bytes(
+        noise_image(size=(32, 32)),
+        save_all=True,
+        append_images=[noise_image(size=(32, 32)), noise_image(size=(32, 32))],
+        duration=100,
+        loop=0,
+        lossless=True,
+        exif=meta_exif,
+        xmp=webp_xmp,
+        icc_profile=srgb_icc(),
+    )
+)
+patched, done = [], False
+for t, p in wa:
+    if t == b"ANMF" and not done:
+        sub = b"FXTR" + struct.pack("<I", 20) + b"FixtureCo hidden data"[:20]
+        p = p + sub + (b"\x00" if 20 & 1 else b"")
+        done = True
+    patched.append((t, p))
+save("webp-animated.webp", webp_build(patched))
+
+# 23. webp-trailing.webp: a metadata WebP, fake video bytes after the RIFF size, then a whole second WebP
+save("webp-trailing.webp", webp_meta + b"\x00\x00\x00\x18ftypmp42" + bytes(random.randrange(256) for _ in range(200)) + webp_simple)
+
+# 24. webp-little-endian-exif.webp: the little-endian TIFF built for the JPEG fixture
+save("webp-little-endian-exif.webp", webp_bytes(noise_image(), quality=80, exif=tiff))
+
+# 25. webp-corrupt.webp: cut in half
+save("webp-corrupt.webp", webp_meta[: len(webp_meta) // 2])
+
+# 26. webp-reserved-bits.webp: VP8X with a reserved flag bit and reserved bytes used to hide data
+wr = webp_parse(webp_bytes(noise_image("RGBA"), quality=80))
+assert wr[0][0] == b"VP8X"
+x = bytearray(wr[0][1])
+x[0] |= 0x01  # reserved flag bit
+x[1:4] = b"FXT"  # reserved bytes
+save("webp-reserved-bits.webp", webp_build([(b"VP8X", bytes(x))] + wr[1:]))
