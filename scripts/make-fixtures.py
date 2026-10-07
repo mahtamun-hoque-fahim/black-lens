@@ -9,6 +9,12 @@ NOT our own parser. If we built test files with our own code, a misreading of
 the format would appear on both sides and the tests would still pass. Pillow
 and piexif are separate implementations, so agreement means something.
 
+NOTE: the sRGB profile Pillow builds embeds its creation time, so fixtures that carry
+an ICC profile (phone-gps.jpg, png-metadata.png) differ byte for byte on every run.
+The tests only depend on structure, but do not re-run this casually: it rewrites
+committed binaries. Run it only when adding a fixture, then `git checkout` the
+files you did not mean to change.
+
 Output goes to src/lib/metadata/__fixtures__/. The images are tiny (32x32
 noise) so the files stay small, but the compressed scan data is real.
 """
@@ -217,3 +223,106 @@ tiff += make
 tiff += struct.pack("<H", 1) + struct.pack("<HHI", 0x0001, 2, 2) + b"N\x00\x00\x00" + struct.pack("<I", 0)
 le = insert_before_tables(jpeg_bytes(noise_image()), segment(0xE1, b"Exif\x00\x00" + tiff))
 save("little-endian.jpg", le)
+
+
+# ---------------------------------------------------------------------------
+# PNG fixtures. Chunks are built here with zlib.crc32, independent of our parser.
+# ---------------------------------------------------------------------------
+import zlib
+
+
+def png_chunk(ctype, data):
+    return struct.pack(">I", len(data)) + ctype + data + struct.pack(">I", zlib.crc32(ctype + data) & 0xFFFFFFFF)
+
+
+def insert_after_ihdr(png, extra):
+    ihdr_end = 8 + 12 + 13  # signature + (length, type, 13 data bytes, crc)
+    return png[:ihdr_end] + extra + png[ihdr_end:]
+
+
+def insert_before_iend(png, extra):
+    return png[:-12] + extra + png[-12:]  # IEND is always the last 12 bytes of a clean Pillow file
+
+
+def png_bytes(img, **kwargs):
+    buf = io.BytesIO()
+    img.save(buf, "PNG", **kwargs)
+    return buf.getvalue()
+
+
+def text(keyword, value):
+    return png_chunk(b"tEXt", keyword.encode("latin-1") + b"\x00" + value.encode("latin-1"))
+
+
+# 9. png-metadata.png: every kind of identifying chunk, plus parts that must stay
+meta_exif = piexif.dump(
+    {
+        "0th": {
+            piexif.ImageIFD.Make: b"FixtureCo",
+            piexif.ImageIFD.Model: b"Fixture Phone 1",
+            piexif.ImageIFD.Orientation: 6,
+        },
+        "Exif": {
+            piexif.ExifIFD.DateTimeOriginal: b"2026:01:02 03:04:05",
+            piexif.ExifIFD.BodySerialNumber: b"SN-0000-PHONE",
+        },
+        "GPS": gps_ifd(),
+        "1st": {},
+        "Interop": {},
+    }
+)[6:]  # drop "Exif\0\0": PNG stores the bare TIFF structure
+xmp_itxt = (
+    b"XML:com.adobe.xmp\x00\x00\x00\x00\x00"  # keyword, NUL, compression flag 0, method 0, empty language, empty translated keyword
+    + b'<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">'
+    b'<rdf:Description xmlns:xmp="http://ns.adobe.com/xap/1.0/"><xmp:CreatorTool>Fixture Editor 9</xmp:CreatorTool>'
+    b"</rdf:Description></rdf:RDF></x:xmpmeta>"
+)
+base = png_bytes(noise_image(), icc_profile=srgb_icc(), dpi=(300, 300))
+before = (
+    png_chunk(b"gAMA", struct.pack(">I", 45455))
+    + text("Author", "Fixture Photographer")
+    + text("Software", "FixtureOS 1.0")
+    + text("Copyright", "(c) Fixture 2026")
+    + text("Comment", "Fixture comment: shot at the secret place")
+    + png_chunk(b"zTXt", b"Description\x00\x00" + zlib.compress(b"Fixture caption text"))
+    + png_chunk(b"iTXt", xmp_itxt)
+    + png_chunk(b"eXIf", meta_exif)
+)
+after = png_chunk(b"tIME", struct.pack(">HBBBBB", 2026, 1, 2, 3, 4, 5)) + text("Creation Time", "2026:01:02 03:04:05")
+png_meta = insert_before_iend(insert_after_ihdr(base, before), after)
+save("png-metadata.png", png_meta)
+
+# 10. png-palette-trns.png: indexed colour with transparency (PLTE + tRNS must survive)
+pal = Image.new("P", (32, 32))
+pal.putpalette([random.randrange(256) for _ in range(768)])
+pal.putdata([random.randrange(16) for _ in range(32 * 32)])
+pal_exif = piexif.dump({"0th": {piexif.ImageIFD.Make: b"FixtureCam", piexif.ImageIFD.Orientation: 3}, "Exif": {}, "GPS": {}, "1st": {}, "Interop": {}})[6:]
+save(
+    "png-palette-trns.png",
+    insert_after_ihdr(png_bytes(pal, transparency=0), text("Author", "Fixture Photographer") + png_chunk(b"eXIf", pal_exif)),
+)
+
+# 11. png-rgba.png: alpha channel plus a text chunk, no EXIF at all
+rgba = noise_image("RGBA")
+rgba_png = insert_after_ihdr(png_bytes(rgba), text("Software", "Fixture Editor 9"))
+save("png-rgba.png", rgba_png)
+
+# 12. png-little-endian-exif.png: eXIf written in "II" byte order (reuses the TIFF built for the JPEG fixture)
+save("png-little-endian-exif.png", insert_after_ihdr(png_bytes(noise_image()), png_chunk(b"eXIf", tiff)))
+
+# 13. png-trailing.png: a metadata PNG, fake video bytes, then a whole second PNG
+save("png-trailing.png", png_meta + b"\x00\x00\x00\x18ftypmp42" + bytes(random.randrange(256) for _ in range(200)) + rgba_png)
+
+# 14. png-animated.png: APNG (acTL, fcTL, fdAT must survive) with an author chunk
+frames = [noise_image(size=(32, 32)) for _ in range(3)]
+apng = png_bytes(frames[0], save_all=True, append_images=frames[1:], duration=100, loop=0)
+save("png-animated.png", insert_after_ihdr(apng, text("Author", "Fixture Photographer")))
+
+# 15. png-clean.png: nothing but IHDR, IDAT, IEND
+save("png-clean.png", png_bytes(noise_image()))
+
+# 16. png-corrupt.png: cut in half
+save("png-corrupt.png", png_meta[: len(png_meta) // 2])
+
+# 17. png-unknown-critical.png: an uppercase chunk we do not understand
+save("png-unknown-critical.png", insert_after_ihdr(png_bytes(noise_image()), png_chunk(b"ABCD", b"mystery")))

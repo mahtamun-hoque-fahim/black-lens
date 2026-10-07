@@ -38,6 +38,10 @@ export function removedLabel(kind: RemovedItem["kind"]): string {
       return "Captions, keywords and credits"
     case "comment":
       return "Text comments"
+    case "text":
+      return "Text notes, author and software details"
+    case "modified-time":
+      return "The time the file was last changed"
     case "jfif-thumbnail":
       return "A small preview copy of the picture"
     case "trailing-data":

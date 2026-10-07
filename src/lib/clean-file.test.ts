@@ -45,7 +45,7 @@ describe("foundItems", () => {
 
 describe("removedLabel and keptLabel", () => {
   it("describe every kind in plain words", () => {
-    for (const kind of ["exif", "xmp", "iptc", "comment", "jfif-thumbnail", "trailing-data", "icc", "other-segment"] as const) {
+    for (const kind of ["exif", "xmp", "iptc", "comment", "text", "modified-time", "jfif-thumbnail", "trailing-data", "icc", "other-segment"] as const) {
       expect(removedLabel(kind).length).toBeGreaterThan(5)
     }
     expect(keptLabel({ kind: "orientation", value: 6 })).toMatch(/rotation/i)

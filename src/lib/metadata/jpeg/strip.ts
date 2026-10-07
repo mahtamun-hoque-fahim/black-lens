@@ -1,30 +1,8 @@
+import type { KeptItem, RemovedItem, RemovedKind, StripOptions } from "../types"
 import { buildOrientationApp1, readExif } from "./exif"
 import { appSignature, isApp, isImageDataMarker, isRst, MARKER, parseJpeg } from "./parse"
 
-export interface StripOptions {
-  /** Also remove the ICC colour profile. Off by default: removing it can shift colours. */
-  removeIcc?: boolean
-}
-
-export type RemovedKind =
-  | "exif"
-  | "xmp"
-  | "iptc"
-  | "comment"
-  | "jfif-thumbnail"
-  | "trailing-data"
-  | "icc"
-  | "other-segment"
-
-export interface RemovedItem {
-  kind: RemovedKind
-  bytes: number
-}
-
-export type KeptItem =
-  | { kind: "orientation"; value: number }
-  | { kind: "icc"; bytes: number }
-  | { kind: "structure" }
+export type { KeptItem, RemovedItem, RemovedKind, StripOptions }
 
 export interface StripResult {
   bytes: Uint8Array
