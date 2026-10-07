@@ -1,17 +1,7 @@
 import { MetadataError } from "../errors"
+import type { Verification, VerifyOptions } from "../types"
 import { readExif, TAG_ORIENTATION } from "./exif"
 import { appSignature, isApp, isImageDataMarker, isRst, markerName, MARKER, parseJpeg } from "./parse"
-
-export interface VerifyOptions {
-  /** Pass the same value given to stripJpeg: a surviving ICC profile is a finding when removal was requested. */
-  removeIcc?: boolean
-}
-
-export interface Verification {
-  clean: boolean
-  /** Plain descriptions of anything found that should not be there. Empty when clean. */
-  findings: string[]
-}
 
 /**
  * Re-read a file and report anything beyond what Clean is allowed to leave:

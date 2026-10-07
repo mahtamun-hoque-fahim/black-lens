@@ -1,13 +1,15 @@
-import type { ExifEntry } from "./jpeg/exif"
+import type { ExifEntry } from "./exif"
 import { inspectJpeg } from "./jpeg/inspect"
 import { verifyCleanJpeg } from "./jpeg/verify"
+import { inspectPng } from "./png/inspect"
+import { verifyCleanPng } from "./png/verify"
 
 /**
  * A plain-language view of what a photo carries, by category. The UI shows this
  * before cleaning. Every flag is "does this photo contain it", never a guess.
  */
 export interface MetadataSummary {
-  format: "jpeg"
+  format: "jpeg" | "png"
   location: boolean
   camera: boolean
   dates: boolean
@@ -62,6 +64,46 @@ export function summarizeJpeg(bytes: Uint8Array): MetadataSummary {
     author,
     notes,
     preview,
+    extraData,
+    other: !alreadyClean && !named,
+    colourProfile: info.icc,
+    orientation: info.orientation,
+    alreadyClean,
+  }
+}
+
+// PNG text chunks carry free-form keywords. These are the standard ones; any other keyword counts as a note.
+const PNG_AUTHOR_KEYS = new Set(["Author", "Copyright", "Artist", "Creator", "Owner"])
+const PNG_SOFTWARE_KEYS = new Set(["Software"])
+const PNG_DATE_KEYS = new Set(["Creation Time", "Modification Time", "date:create", "date:modify", "date:timestamp"])
+
+export function summarizePng(bytes: Uint8Array): MetadataSummary {
+  const info = inspectPng(bytes)
+  const entries = info.exif?.entries ?? []
+  const keys = info.textKeywords
+
+  const location = entries.some((e) => e.ifd === "gps")
+  const camera = has(entries, CAMERA)
+  const dates = has(entries, DATES) || info.time || keys.some((k) => PNG_DATE_KEYS.has(k))
+  const software = has(entries, SOFTWARE) || keys.some((k) => PNG_SOFTWARE_KEYS.has(k))
+  const author = has(entries, AUTHOR) || keys.some((k) => PNG_AUTHOR_KEYS.has(k))
+  const notes =
+    has(entries, NOTES) ||
+    keys.some((k) => !PNG_AUTHOR_KEYS.has(k) && !PNG_SOFTWARE_KEYS.has(k) && !PNG_DATE_KEYS.has(k))
+  const extraData = info.trailingBytes > 0
+  const alreadyClean = verifyCleanPng(bytes).clean
+
+  const named = location || camera || dates || software || author || notes || extraData
+
+  return {
+    format: "png",
+    location,
+    camera,
+    dates,
+    software,
+    author,
+    notes,
+    preview: false, // PNG has no embedded thumbnail
     extraData,
     other: !alreadyClean && !named,
     colourProfile: info.icc,

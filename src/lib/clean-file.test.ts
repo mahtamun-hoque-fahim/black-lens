@@ -18,6 +18,7 @@ describe("cleanFileName", () => {
   it("falls back to .jpg when there is no extension", () => {
     expect(cleanFileName("photo")).toBe("photo-clean.jpg")
     expect(cleanFileName("")).toBe("photo-clean.jpg")
+    expect(cleanFileName("photo", ".png")).toBe("photo-clean.png")
   })
 })
 

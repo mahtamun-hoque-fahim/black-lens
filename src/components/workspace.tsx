@@ -9,6 +9,9 @@ import { DropZone } from "./drop-zone"
 import { FileCard } from "./file-card"
 import { ModeTabs } from "./mode-tabs"
 
+const MIME = { jpeg: "image/jpeg", png: "image/png" } as const
+const EXTENSION = { jpeg: ".jpg", png: ".png" } as const
+
 interface Loaded {
   name: string
   bytes: Uint8Array
@@ -44,8 +47,8 @@ export function Workspace() {
     await new Promise((resolve) => setTimeout(resolve, 0)) // let "Cleaning" paint before the work starts
     try {
       const result = stripMetadata(file.bytes, { removeIcc })
-      const outName = cleanFileName(file.name)
-      saveBytes(result.bytes, outName, "image/jpeg")
+      const outName = cleanFileName(file.name, EXTENSION[result.format])
+      saveBytes(result.bytes, outName, MIME[result.format])
       setState({ step: "done", file, outName, result })
     } catch (e) {
       setState({ step: "ready", file, removeIcc, busy: false, error: errorMessage(e) })
@@ -81,7 +84,7 @@ export function Workspace() {
               outName={state.outName}
               originalSize={state.file.bytes.length}
               result={state.result}
-              onDownload={() => saveBytes(state.result.bytes, state.outName, "image/jpeg")}
+              onDownload={() => saveBytes(state.result.bytes, state.outName, MIME[state.result.format])}
               onReset={reset}
             />
           )}

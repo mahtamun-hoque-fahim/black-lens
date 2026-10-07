@@ -58,4 +58,36 @@ describe("summarizeMetadata", () => {
     const heic = new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63, 0, 0, 0, 0])
     expect(() => summarizeMetadata(heic)).toThrowError(MetadataError)
   })
+
+  describe("PNG", () => {
+    it("flags location, camera, dates, software, author and notes in the metadata PNG", () => {
+      expect(summarizeMetadata(fixture("png-metadata.png"))).toMatchObject({
+        format: "png",
+        location: true,
+        camera: true,
+        dates: true,
+        software: true,
+        author: true,
+        notes: true,
+        colourProfile: true,
+        orientation: 6,
+        alreadyClean: false,
+      })
+    })
+
+    it("reads software from a plain text chunk", () => {
+      const s = summarizeMetadata(fixture("png-rgba.png"))
+      expect(s.software).toBe(true)
+      expect(s.location).toBe(false)
+      expect(s.alreadyClean).toBe(false)
+    })
+
+    it("flags extra data after IEND", () => {
+      expect(summarizeMetadata(fixture("png-trailing.png")).extraData).toBe(true)
+    })
+
+    it("says a PNG with no metadata is already clean", () => {
+      expect(summarizeMetadata(fixture("png-clean.png")).alreadyClean).toBe(true)
+    })
+  })
 })

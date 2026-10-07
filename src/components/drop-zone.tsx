@@ -37,7 +37,7 @@ export function DropZone({ onFile, error }: { onFile: (file: File) => void; erro
           Choose a photo
         </Button>
         <p className="mt-4 text-sm text-muted-foreground">
-          Works with JPEG photos for now. PNG and WebP are on the way. One photo at a time.
+          Works with JPEG and PNG photos for now. WebP is on the way. One photo at a time.
         </p>
         <input
           ref={input}

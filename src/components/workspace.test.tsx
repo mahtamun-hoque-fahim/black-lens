@@ -76,10 +76,28 @@ describe("Workspace", () => {
 
   it("explains plainly when a format is not supported yet", async () => {
     render(<Workspace />)
-    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])
-    await choose(asFile(png, "shot.png", "image/png"))
-    expect(await screen.findByRole("alert")).toHaveTextContent("PNG cleaning is not supported yet.")
+    const webp = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x10, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0, 0, 0, 0])
+    await choose(asFile(webp, "shot.webp", "image/webp"))
+    expect(await screen.findByRole("alert")).toHaveTextContent("WebP cleaning is not supported yet.")
     expect(screen.getByRole("button", { name: "Choose a photo" })).toBeInTheDocument()
+  })
+
+  it("cleans a PNG and saves it as a PNG", async () => {
+    render(<Workspace />)
+    const user = await choose(asFile(fixture("png-metadata.png"), "shot.png", "image/png"))
+    expect(await screen.findByText("Has location")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Clean and download" }))
+    expect(await screen.findByRole("heading", { name: "All identifying metadata removed" })).toBeInTheDocument()
+    const [, name, mime] = vi.mocked(saveBytes).mock.calls[0]
+    expect(name).toBe("shot-clean.png")
+    expect(mime).toBe("image/png")
+    expect(screen.getByText("Text notes, author and software details")).toBeInTheDocument()
+    expect(screen.getByText("The time the file was last changed")).toBeInTheDocument()
+  })
+
+  it("names the supported formats honestly", () => {
+    render(<Workspace />)
+    expect(screen.getByText(/JPEG and PNG photos for now/)).toBeInTheDocument()
   })
 
   it("explains plainly when a file is damaged", async () => {

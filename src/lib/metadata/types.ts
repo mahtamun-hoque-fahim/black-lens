@@ -26,3 +26,14 @@ export type KeptItem =
   | { kind: "orientation"; value: number }
   | { kind: "icc"; bytes: number }
   | { kind: "structure" }
+
+export interface VerifyOptions {
+  /** Pass the same value given to the stripper: a surviving ICC profile is a finding when removal was requested. */
+  removeIcc?: boolean
+}
+
+export interface Verification {
+  clean: boolean
+  /** Plain descriptions of anything found that should not be there. Empty when clean. */
+  findings: string[]
+}

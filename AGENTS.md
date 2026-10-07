@@ -17,11 +17,11 @@ A free, in-browser tool that shows the hidden metadata inside photos, removes th
 (Rewritten at the end of every session with substantive work. Everything here is true today; anything older lives in the Session Log.)
 
 - Updated: 2026-10-05
-- Status: Phase 3 built (Clean on JPEG, end to end); not yet reviewed visually
-- Works: metadata core for JPEG (`src/lib/metadata/`: sniffer, parser, EXIF reader, stripper, verifier, `stripMetadata()`, `summarizeMetadata()`); UI in `src/components/` (theme toggle, header, footer, back to top, mode tabs, drop zone, file card, result screen, `Workspace`); 404 page; 106 passing tests; live on Vercel at black-lens.vercel.app
+- Status: Phase 4 in progress: JPEG and PNG clean end to end; WebP not started
+- Works: metadata core for JPEG and PNG (`src/lib/metadata/`: sniffer, per-format parser, shared EXIF reader, stripper, verifier, `stripMetadata()`, `summarizeMetadata()`, CRC-32); UI in `src/components/` (Workspace, drop zone, file card, result screen, mode tabs, theme toggle); 190 passing tests; segment maps in `docs/formats/jpeg.md` and `docs/formats/png.md`; 17 fixtures
 - In progress: nothing half-built
-- Next: Fahim reviews the live page; then Phase 4 starting with the PNG chunk map (`docs/formats/png.md`) before any PNG code
-- Watch out: no browser exists in the build sandbox, so layout and colours were never seen by Claude, only the server HTML and the tests; `next build` needs network for `next/font/google` (fine on Vercel, fails offline); `npx tsc --noEmit` needs `npm run typegen` first; View and Tag tabs are disabled on purpose until their phases; PNG and WebP throw "not supported yet" and the drop zone copy says JPEG only for now; the next-themes inline script needs a nonce or hash when the CSP lands in Phase 7; `src/components/button.tsx` sits outside `components/ui` so `shadcn add` cannot overwrite it; `npm audit` reports 9 high findings, all in dev tooling, never run `audit fix --force`; a classic GitHub token was used for these sessions and must be revoked when the work is done
+- Next: WebP slice (chunk map in `docs/formats/webp.md` first, then fixtures, failing tests, stripper), then batches and ZIP, then restore the "JPEG, PNG or WebP" drop zone wording
+- Watch out: no browser exists in the build sandbox, so layout and colours were never seen by Claude; `next build` needs network for `next/font/google` (fine on Vercel); `npx tsc --noEmit` needs `npm run typegen` first; the sRGB profile Pillow builds embeds its creation time, so re-running `scripts/make-fixtures.py` rewrites phone-gps.jpg and png-metadata.png (run it only to add a fixture, then `git checkout` the rest); View and Tag tabs are disabled on purpose until their phases; WebP and HEIC throw "not supported yet"; the next-themes inline script needs a nonce or hash when the CSP lands in Phase 7; `src/components/button.tsx` sits outside `components/ui` so `shadcn add` cannot overwrite it; `npm audit` reports 9 high findings, all in dev tooling, never run `audit fix --force`; a classic GitHub token is used per command for pushes and must be revoked when the work is done
 
 ## Git Identity (Session Start - run before any commit, every session)
 
@@ -69,6 +69,11 @@ Execute automatically at the start of every session, before the first commit. Ne
 ## Session Log
 
 (Newest first: add each new entry at the top. No cap: never delete or shorten older entries. When a later session reverses a decision, mark the old line `[SUPERSEDED YYYY-MM-DD]`. This section updates automatically at the end of any session with substantive work, independent of whether "update repo" was said.)
+
+### 2026-10-05 (session 4: PNG)
+- Did: Pushed Phase 3 after the first token was revoked. Wrote the PNG chunk map, 9 PNG fixtures and failing tests, then CRC-32, parser, inspector, stripper and verifier. Shared the EXIF reader and result types between formats. Wired PNG into `stripMetadata` and `summarizeMetadata`, and made download name and MIME follow the format. Verified with exiftool, Pillow (pixels, all APNG frames, CRCs), a raw secret grep and six planted bugs
+- Decided: `pHYs` kept; unknown critical chunk rejected as corrupt; legacy `Raw profile type exif` text not carried over; drop zone says "JPEG and PNG" until WebP lands
+- Next: WebP slice
 
 ### 2026-10-05 (session 3: Phase 3 UI)
 - Did: Confirmed Vercel was connected and deployed. Added `summarizeMetadata()` (tests first). Built the app shell and the whole Clean flow with 8 behaviour tests for the Workspace. Checked the server HTML and the 404 by running the dev server

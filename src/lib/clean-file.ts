@@ -1,9 +1,9 @@
 import { MetadataError, type KeptItem, type MetadataSummary, type RemovedItem } from "@/lib/metadata"
 
 /** photo.jpg becomes photo-clean.jpg. The original is never overwritten. */
-export function cleanFileName(name: string): string {
+export function cleanFileName(name: string, fallbackExtension = ".jpg"): string {
   const dot = name.lastIndexOf(".")
-  if (dot <= 0) return `${name || "photo"}-clean.jpg`
+  if (dot <= 0) return `${name || "photo"}-clean${fallbackExtension}`
   return `${name.slice(0, dot)}-clean${name.slice(dot)}`
 }
 
