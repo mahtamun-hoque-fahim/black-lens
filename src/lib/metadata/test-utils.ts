@@ -17,3 +17,20 @@ export function containsText(bytes: Uint8Array, text: string): boolean {
 export function toHex(bytes: Uint8Array): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")
 }
+
+/** Text injected into fixtures by scripts/make-fixtures.py that must never survive Clean. */
+export const SECRETS = [
+  "FixtureCo",
+  "FixtureCam",
+  "LittleCo",
+  "Fixture Phone",
+  "FixtureOS",
+  "SN-0000-PHONE",
+  "Fixture Photographer",
+  "(c) Fixture",
+  "Fixture Editor",
+  "secret place",
+  "2026:01:02",
+  "ftypmp42",
+  "xmpmeta",
+]
