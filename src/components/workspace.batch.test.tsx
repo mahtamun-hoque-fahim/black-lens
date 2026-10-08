@@ -136,4 +136,36 @@ describe("Workspace: batches", () => {
     await user.click(await screen.findByRole("button", { name: "Clear all" }))
     expect(await screen.findByRole("button", { name: "Choose photos" })).toBeInTheDocument()
   })
+
+  it("keeps a photo over the size limit in the list as an error and still cleans the others", async () => {
+    render(<Workspace />)
+    const huge = jpg("huge.jpg")
+    Object.defineProperty(huge, "size", { value: 101 * 1024 * 1024 }) // pretend it is 101 MB without allocating it
+    const user = await choose([huge, jpg("ok.jpg")])
+    await waitFor(() => expect(within(rows()[0]).getByText("Too big")).toBeInTheDocument())
+    await user.click(within(rows()[0]).getByRole("button", { name: /^huge\.jpg/ }))
+    expect(within(screen.getByRole("region", { name: "Details" })).getByRole("alert")).toHaveTextContent("bigger than 100 MB")
+    await waitFor(() => expect(within(rows()[1]).getByText("Has location")).toBeInTheDocument())
+    await user.click(screen.getByRole("button", { name: "Clean all and download ZIP" }))
+    expect(await screen.findByRole("heading", { name: "Cleaned 1 of 2 photos" })).toBeInTheDocument()
+  })
+
+  it("keeps only the first 200 photos and says so", async () => {
+    render(<Workspace />)
+    const tiny = fixture("no-metadata.jpg")
+    await choose(Array.from({ length: 203 }, (_, i) => file(tiny, `p${i}.jpg`, "image/jpeg")))
+    await waitFor(() => expect(rows()).toHaveLength(200), { timeout: 15000 })
+    expect(screen.getByText(/Only the first 200 photos were added\. 3 more were left out\./)).toBeInTheDocument()
+  }, 30000)
+
+  it("does not offer to clean when no photo can be cleaned", async () => {
+    render(<Workspace />)
+    const user = await choose([heic("a.heic"), heic("b.heic")])
+    await waitFor(() => expect(within(rows()[1]).getByText("Not supported")).toBeInTheDocument())
+    const button = screen.getByRole("button", { name: "Clean all and download ZIP" })
+    expect(button).toHaveAttribute("aria-disabled", "true")
+    await user.click(button)
+    expect(saveParts).not.toHaveBeenCalled()
+    expect(screen.queryByRole("heading", { name: /photos$/ })).toBeInTheDocument() // still the queue ("2 photos"), not a result
+  })
 })
