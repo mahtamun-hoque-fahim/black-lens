@@ -3,13 +3,15 @@ import { inspectJpeg } from "./jpeg/inspect"
 import { verifyCleanJpeg } from "./jpeg/verify"
 import { inspectPng } from "./png/inspect"
 import { verifyCleanPng } from "./png/verify"
+import { inspectWebp } from "./webp/inspect"
+import { verifyCleanWebp } from "./webp/verify"
 
 /**
  * A plain-language view of what a photo carries, by category. The UI shows this
  * before cleaning. Every flag is "does this photo contain it", never a guess.
  */
 export interface MetadataSummary {
-  format: "jpeg" | "png"
+  format: "jpeg" | "png" | "webp"
   location: boolean
   camera: boolean
   dates: boolean
@@ -104,6 +106,38 @@ export function summarizePng(bytes: Uint8Array): MetadataSummary {
     author,
     notes,
     preview: false, // PNG has no embedded thumbnail
+    extraData,
+    other: !alreadyClean && !named,
+    colourProfile: info.icc,
+    orientation: info.orientation,
+    alreadyClean,
+  }
+}
+
+export function summarizeWebp(bytes: Uint8Array): MetadataSummary {
+  const info = inspectWebp(bytes)
+  const entries = info.exif?.entries ?? []
+
+  const location = entries.some((e) => e.ifd === "gps")
+  const camera = has(entries, CAMERA)
+  const dates = has(entries, DATES)
+  const software = has(entries, SOFTWARE)
+  const author = has(entries, AUTHOR)
+  const notes = info.xmp || has(entries, NOTES)
+  const extraData = info.trailingBytes > 0
+  const alreadyClean = verifyCleanWebp(bytes).clean
+
+  const named = location || camera || dates || software || author || notes || extraData
+
+  return {
+    format: "webp",
+    location,
+    camera,
+    dates,
+    software,
+    author,
+    notes,
+    preview: false, // WebP has no embedded thumbnail
     extraData,
     other: !alreadyClean && !named,
     colourProfile: info.icc,

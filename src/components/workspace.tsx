@@ -9,8 +9,8 @@ import { DropZone } from "./drop-zone"
 import { FileCard } from "./file-card"
 import { ModeTabs } from "./mode-tabs"
 
-const MIME = { jpeg: "image/jpeg", png: "image/png" } as const
-const EXTENSION = { jpeg: ".jpg", png: ".png" } as const
+const MIME = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" } as const
+const EXTENSION = { jpeg: ".jpg", png: ".png", webp: ".webp" } as const
 
 interface Loaded {
   name: string

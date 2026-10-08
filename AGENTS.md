@@ -17,11 +17,11 @@ A free, in-browser tool that shows the hidden metadata inside photos, removes th
 (Rewritten at the end of every session with substantive work. Everything here is true today; anything older lives in the Session Log.)
 
 - Updated: 2026-10-05
-- Status: Phase 4 in progress: JPEG and PNG clean end to end; WebP not started
-- Works: metadata core for JPEG and PNG (`src/lib/metadata/`: sniffer, per-format parser, shared EXIF reader, stripper, verifier, `stripMetadata()`, `summarizeMetadata()`, CRC-32); UI in `src/components/` (Workspace, drop zone, file card, result screen, mode tabs, theme toggle); 190 passing tests; segment maps in `docs/formats/jpeg.md` and `docs/formats/png.md`; 17 fixtures
+- Status: Phase 4 half done: JPEG, PNG and WebP all clean end to end, one photo at a time; batches and ZIP not started
+- Works: metadata core for JPEG, PNG and WebP (`src/lib/metadata/`: sniffer, per-format parser, shared EXIF reader, stripper, verifier, `stripMetadata()`, `summarizeMetadata()`); UI in `src/components/`; 291 passing tests; segment maps in `docs/formats/` for all three; 27 fixtures
 - In progress: nothing half-built
-- Next: WebP slice (chunk map in `docs/formats/webp.md` first, then fixtures, failing tests, stripper), then batches and ZIP, then restore the "JPEG, PNG or WebP" drop zone wording
-- Watch out: no browser exists in the build sandbox, so layout and colours were never seen by Claude; `next build` needs network for `next/font/google` (fine on Vercel); `npx tsc --noEmit` needs `npm run typegen` first; the sRGB profile Pillow builds embeds its creation time, so re-running `scripts/make-fixtures.py` rewrites phone-gps.jpg and png-metadata.png (run it only to add a fixture, then `git checkout` the rest); View and Tag tabs are disabled on purpose until their phases; WebP and HEIC throw "not supported yet"; the next-themes inline script needs a nonce or hash when the CSP lands in Phase 7; `src/components/button.tsx` sits outside `components/ui` so `shadcn add` cannot overwrite it; `npm audit` reports 9 high findings, all in dev tooling, never run `audit fix --force`; a classic GitHub token is used per command for pushes and must be revoked when the work is done
+- Next: batches and ZIP (multiple files, folders, ZIP in and out, size limits, a Web Worker so big files never freeze the page); then Phase 5 View mode
+- Watch out: no browser exists in the build sandbox, so layout and colours were never seen by Claude; `next build` needs network for `next/font/google` (fine on Vercel); `npx tsc --noEmit` needs `npm run typegen` first; the sRGB profile Pillow builds embeds its creation time, so re-running `scripts/make-fixtures.py` rewrites the fixtures that carry it (phone-gps.jpg, png-metadata.png and friends): run it only to add a fixture, then `git checkout` the rest, or put new derived fixtures in `scripts/make-derived-fixtures.py` which reads committed files and is safe to re-run; View and Tag tabs are disabled on purpose until their phases; HEIC throws "not supported yet"; the next-themes inline script needs a nonce or hash when the CSP lands in Phase 7; `src/components/button.tsx` sits outside `components/ui` so `shadcn add` cannot overwrite it; `npm audit` reports 9 high findings, all in dev tooling, never run `audit fix --force`; a classic GitHub token is used per command for pushes and must be revoked when the work is done
 
 ## Git Identity (Session Start - run before any commit, every session)
 
@@ -69,6 +69,12 @@ Execute automatically at the start of every session, before the first commit. Ne
 ## Session Log
 
 (Newest first: add each new entry at the top. No cap: never delete or shorten older entries. When a later session reverses a decision, mark the old line `[SUPERSEDED YYYY-MM-DD]`. This section updates automatically at the end of any session with substantive work, independent of whether "update repo" was said.)
+
+### 2026-10-05 (session 5: WebP)
+- Did: Wrote the WebP chunk map, 10 fixtures and failing tests, then the RIFF parser, stripper (RIFF size and VP8X flags rewritten), verifier and summary. Wired WebP into `stripMetadata`, `summarizeMetadata` and the UI. Verified with exiftool, Pillow, a raw secret grep and eight planted bugs
+- Found: a planted bug survived (skipped pad-byte zeroing), so I added a dirty-pad fixture and a pad check to the verifier. A first version of that verifier test passed for the wrong reason (the fixture was dirty anyway), so it was rewritten to clean the file first. libwebp refuses a header with reserved bits set; the cleaned output decodes fine
+- Decided: unknown sub-chunks inside animation frames are removed; reserved VP8X bits cleared; drop zone now says "JPEG, PNG and WebP"
+- Next: batches and ZIP
 
 ### 2026-10-05 (session 4: PNG)
 - Did: Pushed Phase 3 after the first token was revoked. Wrote the PNG chunk map, 9 PNG fixtures and failing tests, then CRC-32, parser, inspector, stripper and verifier. Shared the EXIF reader and result types between formats. Wired PNG into `stripMetadata` and `summarizeMetadata`, and made download name and MIME follow the format. Verified with exiftool, Pillow (pixels, all APNG frames, CRCs), a raw secret grep and six planted bugs

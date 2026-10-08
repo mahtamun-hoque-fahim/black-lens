@@ -27,15 +27,17 @@ describe("stripMetadata", () => {
     expect(result.removed.some((r) => r.kind === "icc")).toBe(true)
   })
 
-  it("says WebP is not supported yet, by name", () => {
-    const webp = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x10, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0, 0, 0, 0])
-    try {
-      stripMetadata(webp)
-      expect.unreachable("should have thrown")
-    } catch (e) {
-      expect((e as MetadataError).code).toBe("unsupported")
-      expect((e as MetadataError).message).toBe("WebP cleaning is not supported yet.")
-    }
+  it("cleans a WebP and reports a verified result", () => {
+    const input = fixture("webp-metadata.webp")
+    const result = stripMetadata(input)
+    expect(result.format).toBe("webp")
+    expect(result.verification.clean).toBe(true)
+    expect(result.verification.imageDataIdentical).toBe(true)
+    expect(result.bytes.length).toBeLessThan(input.length)
+  })
+
+  it("honours removeIcc for WebP", () => {
+    expect(stripMetadata(fixture("webp-metadata.webp"), { removeIcc: true }).removed.some((r) => r.kind === "icc")).toBe(true)
   })
 
   it("says HEIC is not supported yet", () => {

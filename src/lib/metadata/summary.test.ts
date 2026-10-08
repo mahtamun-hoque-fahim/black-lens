@@ -90,4 +90,31 @@ describe("summarizeMetadata", () => {
       expect(summarizeMetadata(fixture("png-clean.png")).alreadyClean).toBe(true)
     })
   })
+
+  describe("WebP", () => {
+    it("flags location, camera, notes and the colour profile in the metadata WebP", () => {
+      expect(summarizeMetadata(fixture("webp-metadata.webp"))).toMatchObject({
+        format: "webp",
+        location: true,
+        camera: true,
+        dates: true,
+        notes: true, // XMP
+        colourProfile: true,
+        orientation: 6,
+        alreadyClean: false,
+      })
+    })
+
+    it("calls an unknown chunk 'other' when nothing else is named", () => {
+      expect(summarizeMetadata(fixture("webp-reserved-bits.webp")).alreadyClean).toBe(false)
+    })
+
+    it("flags extra data after the RIFF size", () => {
+      expect(summarizeMetadata(fixture("webp-trailing.webp")).extraData).toBe(true)
+    })
+
+    it("says a simple WebP is already clean", () => {
+      expect(summarizeMetadata(fixture("webp-simple.webp")).alreadyClean).toBe(true)
+    })
+  })
 })

@@ -6,8 +6,11 @@ import { extractImageData as pngImageData } from "./png/parse"
 import { stripPng } from "./png/strip"
 import { verifyCleanPng } from "./png/verify"
 import { sniffFormat, type MetadataFormat } from "./sniff"
-import { summarizeJpeg, summarizePng, type MetadataSummary } from "./summary"
+import { summarizeJpeg, summarizePng, summarizeWebp, type MetadataSummary } from "./summary"
 import type { KeptItem, RemovedItem, StripOptions } from "./types"
+import { extractImageData as webpImageData } from "./webp/parse"
+import { stripWebp } from "./webp/strip"
+import { verifyCleanWebp } from "./webp/verify"
 
 export { MetadataError, type MetadataErrorCode } from "./errors"
 export { sniffFormat, type MetadataFormat } from "./sniff"
@@ -15,7 +18,7 @@ export type { KeptItem, RemovedItem, RemovedKind, StripOptions } from "./types"
 export type { MetadataSummary } from "./summary"
 
 export interface StripMetadataResult {
-  format: "jpeg" | "png"
+  format: "jpeg" | "png" | "webp"
   bytes: Uint8Array
   removed: RemovedItem[]
   kept: KeptItem[]
@@ -28,20 +31,20 @@ export interface StripMetadataResult {
   }
 }
 
-const NAMES: Partial<Record<MetadataFormat, string>> = { webp: "WebP", heic: "HEIC" }
-
 /** Throws the right MetadataError for formats we cannot handle (yet); returns the format otherwise. */
-function requireSupported(input: Uint8Array): "jpeg" | "png" {
+function requireSupported(input: Uint8Array): "jpeg" | "png" | "webp" {
   const format: MetadataFormat = sniffFormat(input)
-  if (format === "jpeg" || format === "png") return format
+  if (format === "jpeg" || format === "png" || format === "webp") return format
   if (format === "heic") throw new MetadataError("unsupported", "HEIC photos are not supported yet.")
-  if (format === "webp") throw new MetadataError("unsupported", `${NAMES.webp} cleaning is not supported yet.`)
   throw new MetadataError("unknown-format", "This does not look like a JPEG, PNG or WebP image.")
 }
 
 /** Look inside a photo and report, by category, what it carries. Changes nothing. */
 export function summarizeMetadata(input: Uint8Array): MetadataSummary {
-  return requireSupported(input) === "png" ? summarizePng(input) : summarizeJpeg(input)
+  const format = requireSupported(input)
+  if (format === "png") return summarizePng(input)
+  if (format === "webp") return summarizeWebp(input)
+  return summarizeJpeg(input)
 }
 
 function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
@@ -57,10 +60,12 @@ function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
  */
 export function stripMetadata(input: Uint8Array, options: StripOptions = {}): StripMetadataResult {
   const format = requireSupported(input)
-  const run =
-    format === "png"
-      ? { strip: stripPng, verify: verifyCleanPng, imageData: pngImageData }
-      : { strip: stripJpeg, verify: verifyCleanJpeg, imageData: jpegImageData }
+  const formats = {
+    jpeg: { strip: stripJpeg, verify: verifyCleanJpeg, imageData: jpegImageData },
+    png: { strip: stripPng, verify: verifyCleanPng, imageData: pngImageData },
+    webp: { strip: stripWebp, verify: verifyCleanWebp, imageData: webpImageData },
+  }
+  const run = formats[format]
 
   const result = run.strip(input, options)
   const check = run.verify(result.bytes, options)

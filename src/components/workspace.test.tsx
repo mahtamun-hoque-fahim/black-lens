@@ -76,9 +76,9 @@ describe("Workspace", () => {
 
   it("explains plainly when a format is not supported yet", async () => {
     render(<Workspace />)
-    const webp = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x10, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0, 0, 0, 0])
-    await choose(asFile(webp, "shot.webp", "image/webp"))
-    expect(await screen.findByRole("alert")).toHaveTextContent("WebP cleaning is not supported yet.")
+    const heic = new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63, 0, 0, 0, 0])
+    await choose(asFile(heic, "shot.heic", "image/heic"))
+    expect(await screen.findByRole("alert")).toHaveTextContent("HEIC photos are not supported yet.")
     expect(screen.getByRole("button", { name: "Choose a photo" })).toBeInTheDocument()
   })
 
@@ -95,9 +95,20 @@ describe("Workspace", () => {
     expect(screen.getByText("The time the file was last changed")).toBeInTheDocument()
   })
 
+  it("cleans a WebP and saves it as a WebP", async () => {
+    render(<Workspace />)
+    const user = await choose(asFile(fixture("webp-metadata.webp"), "pic.webp", "image/webp"))
+    expect(await screen.findByText("Has location")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Clean and download" }))
+    expect(await screen.findByRole("heading", { name: "All identifying metadata removed" })).toBeInTheDocument()
+    const [, name, mime] = vi.mocked(saveBytes).mock.calls[0]
+    expect(name).toBe("pic-clean.webp")
+    expect(mime).toBe("image/webp")
+  })
+
   it("names the supported formats honestly", () => {
     render(<Workspace />)
-    expect(screen.getByText(/JPEG and PNG photos for now/)).toBeInTheDocument()
+    expect(screen.getByText(/JPEG, PNG and WebP photos/)).toBeInTheDocument()
   })
 
   it("explains plainly when a file is damaged", async () => {
