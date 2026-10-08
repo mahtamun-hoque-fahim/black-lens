@@ -5,7 +5,7 @@ import { fixture } from "@/lib/metadata/test-utils"
 import { saveBytes } from "@/lib/download"
 import { Workspace } from "./workspace"
 
-vi.mock("@/lib/download", () => ({ saveBytes: vi.fn() }))
+vi.mock("@/lib/download", () => ({ saveBytes: vi.fn(), saveParts: vi.fn() }))
 
 const asFile = (bytes: Uint8Array, name: string, type: string) =>
   new File([bytes as BlobPart], name, { type })
@@ -24,7 +24,7 @@ describe("Workspace", () => {
     expect(screen.getByRole("tab", { name: "Clean" })).toHaveAttribute("aria-selected", "true")
     expect(screen.getByRole("tab", { name: /View/ })).toBeDisabled()
     expect(screen.getByRole("tab", { name: /Tag/ })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "Choose a photo" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Choose photos" })).toBeInTheDocument()
   })
 
   it("shows what a photo carries and warns about location", async () => {
@@ -79,7 +79,7 @@ describe("Workspace", () => {
     const heic = new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63, 0, 0, 0, 0])
     await choose(asFile(heic, "shot.heic", "image/heic"))
     expect(await screen.findByRole("alert")).toHaveTextContent("HEIC photos are not supported yet.")
-    expect(screen.getByRole("button", { name: "Choose a photo" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Choose photos" })).toBeInTheDocument()
   })
 
   it("cleans a PNG and saves it as a PNG", async () => {
@@ -108,7 +108,7 @@ describe("Workspace", () => {
 
   it("names the supported formats honestly", () => {
     render(<Workspace />)
-    expect(screen.getByText(/JPEG, PNG and WebP photos/)).toBeInTheDocument()
+    expect(screen.getByText(/Works with JPEG, PNG and WebP/)).toBeInTheDocument()
   })
 
   it("explains plainly when a file is damaged", async () => {
@@ -121,7 +121,7 @@ describe("Workspace", () => {
     render(<Workspace />)
     const user = await choose(asFile(fixture("phone-gps.jpg"), "a.jpg", "image/jpeg"))
     await user.click(await screen.findByRole("button", { name: "Choose another photo" }))
-    await waitFor(() => expect(screen.getByRole("button", { name: "Choose a photo" })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole("button", { name: "Choose photos" })).toBeInTheDocument())
     expect(screen.queryByText("a.jpg")).not.toBeInTheDocument()
   })
 })
