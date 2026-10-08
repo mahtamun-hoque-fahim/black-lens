@@ -17,6 +17,7 @@ const VALID = [
   "webp-trailing.webp",
   "webp-little-endian-exif.webp",
   "webp-reserved-bits.webp",
+  "webp-pad-bytes.webp",
 ] as const
 
 const WEBP_SECRETS = [...SECRETS, "FXTR", "FixtureOS unknown"]
@@ -139,6 +140,12 @@ describe("stripWebp", () => {
       expect(inspectWebp(result.bytes).orientation).toBe(inspectWebp(input).orientation)
     })
 
+    it("zeroes every pad byte after an odd-sized chunk (padding is a place to hide data)", () => {
+      for (const c of parseWebp(result.bytes).chunks) {
+        if ((c.dataEnd - c.dataStart) & 1) expect(result.bytes[c.dataEnd], `pad after ${c.type}`).toBe(0)
+      }
+    })
+
     it("is idempotent: cleaning a clean file changes nothing", () => {
       expect(toHex(stripWebp(result.bytes).bytes)).toBe(toHex(result.bytes))
     })
@@ -216,6 +223,16 @@ describe("verifyCleanWebp (the check must be able to fail)", () => {
     const clean = stripWebp(fixture("webp-metadata.webp")).bytes
     expect(verifyCleanWebp(clean).clean).toBe(true)
     expect(verifyCleanWebp(clean, { removeIcc: true }).clean).toBe(false)
+  })
+
+  it("flags a non-zero pad byte, on a file that is otherwise clean", () => {
+    const clean = stripWebp(fixture("webp-pad-bytes.webp")).bytes.slice()
+    expect(verifyCleanWebp(clean).clean).toBe(true) // the only thing wrong will be the pad byte
+    const alph = parseWebp(clean).chunks.find((c) => c.type === "ALPH")!
+    clean[alph.dataEnd] = 0x46
+    const check = verifyCleanWebp(clean)
+    expect(check.clean).toBe(false)
+    expect(check.findings.join(" ")).toMatch(/pad/i)
   })
 
   it("flags a RIFF size that does not match the file", () => {
