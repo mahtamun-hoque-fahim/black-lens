@@ -54,6 +54,13 @@ describe("createRunner without a Worker (the fallback)", () => {
     expect((await runner.clean(file, { removeIcc: false })).format).toBe("webp")
   })
 
+  it("passes removeIcc through to the work", async () => {
+    const file = asFile("a.png", fixture("png-metadata.png"))
+    const runner = createRunner()
+    expect((await runner.clean(file, { removeIcc: true })).removed.some((r) => r.kind === "icc")).toBe(true)
+    expect((await runner.clean(file, { removeIcc: false })).removed.some((r) => r.kind === "icc")).toBe(false)
+  })
+
   it("rejects with a real MetadataError, so callers can read its code", async () => {
     const runner = createRunner()
     expect(await code(runner.summarize(asFile("bad.jpg", fixture("corrupt-truncated.jpg"))))).toBe("corrupt")
@@ -74,6 +81,8 @@ class FakeWorker {
     FakeWorker.instances.push(this)
   }
   postMessage(req: WorkerRequest) {
+    // A terminated worker silently drops every message, exactly like a real one.
+    if (this.terminated) return
     this.received.push(req)
     if (FakeWorker.failOnStart === false && (this as { broken?: boolean }).broken) {
       queueMicrotask(() => this.onerror?.(new Error("script failed to load")))
@@ -111,6 +120,14 @@ describe("createRunner with a Worker", () => {
   it("rebuilds a MetadataError from the worker's plain error object", async () => {
     g.Worker = FakeWorker
     expect(await code(createRunner().summarize(asFile("bad.jpg", fixture("corrupt-truncated.jpg"))))).toBe("corrupt")
+  })
+
+  it("passes removeIcc through to the worker", async () => {
+    g.Worker = FakeWorker
+    const file = asFile("a.png", fixture("png-metadata.png"))
+    const runner = createRunner()
+    expect((await runner.clean(file, { removeIcc: true })).removed.some((r) => r.kind === "icc")).toBe(true)
+    expect(FakeWorker.instances[0].received.map((r) => (r as { removeIcc?: boolean }).removeIcc)).toEqual([true])
   })
 
   it("returns the cleaned bytes intact", async () => {
