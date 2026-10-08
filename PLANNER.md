@@ -150,12 +150,12 @@ Status: `[x]` built; waiting on Fahim's visual review (no browser in the build s
 - [x] Single-file Clean: drop zone, what-it-carries summary with location warning, colour profile switch, result screen (removed, kept, verified re-scan), download
 
 ### Phase 4: PNG, WebP, batches
-Status: `[ ]` pending
+Status: `[x]` built; waiting on Fahim's review on real photos
 
 - [x] PNG stripper, verifier and summary (75 tests; checked with exiftool, Pillow and six planted bugs)
 - [x] WebP stripper, verifier and summary (95 tests; checked with exiftool, Pillow and eight planted bugs)
-- [ ] Multiple files, folder, ZIP input and ZIP output; count and size limits
-- [ ] "Not supported yet" handling (HEIC and others)
+- [x] Multiple files, folders (picker and drag-drop), ZIP input and ZIP output, queue with inspector, progress, count and size limits (200 photos, 100 MB each, 500 MB total), Web Worker with main-thread fallback (356 tests; ZIP checked with Python zipfile and unzip)
+- [x] "Not supported" handling (HEIC and others): word-only chip in the queue, plain sentence in the inspector
 
 ### Phase 5: View
 Status: `[ ]` pending
@@ -191,9 +191,9 @@ Status: `[ ]` pending
 ## Next Steps
 
 In order:
-1. Fahim reviews the live page on Vercel (light and dark, phone width) and reports anything off
-2. Batches and ZIP: several files at once, folders, ZIP in and out, size limits, a worker so the page never freezes on big files
-3. Phase 5: View mode (grouped inspector)
+1. Fahim reviews the live page with real photos: one photo, a batch, a folder, a ZIP; light and dark; phone width
+2. Phase 5: View mode (grouped inspector: Location, Camera, Dates, Software, Author; copyable values; GPS warning)
+3. Phase 6: Tag mode (author and copyright writers per format)
 
 ---
 
@@ -208,3 +208,7 @@ In order:
 **2026-10-05.** Theme toggle uses next-themes (system by default, class on html). Its inline script will need a nonce or hash when the CSP is added in Phase 7.
 **2026-10-05.** PNG: `pHYs` (pixel density) is kept as a display hint, not identifying; an unknown critical chunk makes the file rejected as corrupt instead of guessed at; text chunks are removed, including legacy `Raw profile type exif`, so Orientation stored that way is not carried over (modern `eXIf` is).
 **2026-10-05.** WebP: the RIFF size is rewritten after stripping; VP8X flags are rebuilt to match the chunks really present (ICC, EXIF, alpha, animation) and reserved bits and bytes are cleared; unknown chunks inside animation frames are removed; pad bytes after odd-sized chunks are zeroed because padding is a place to hide data. EXIF goes last, after the image data, as the layout requires.
+**2026-10-05.** Batch limits (a product decision, `src/lib/limits.ts`): 200 photos, 100 MB each, 500 MB total, so a phone browser can hold originals and cleaned copies at once. A photo over the size limit stays in the queue as a "Too big" row; photos past the count or total limit are left out with one notice.
+**2026-10-05.** ZIP output stores files (no deflate, photos are already compressed), uses a fixed 1980-01-01 timestamp so the archive does not record when the person cleaned their photos, and records no Unix owner or permission bits. ZIP input reads stored and deflated files, rejects encrypted and ZIP64, and refuses zip bombs by declared size before inflating. See `docs/formats/zip.md`.
+**2026-10-05.** Work runs in a Web Worker (`src/lib/clean.worker.ts`); if the worker cannot start or breaks, the same function (`processRequest`) runs on the main thread, so the page never dies for lack of a worker.
+**2026-10-05.** Not built on purpose: adding more photos to an existing queue (a new drop replaces it), a cancel button during a batch, per-photo downloads from the batch result. Candidates for a later polish pass.

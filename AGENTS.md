@@ -17,11 +17,11 @@ A free, in-browser tool that shows the hidden metadata inside photos, removes th
 (Rewritten at the end of every session with substantive work. Everything here is true today; anything older lives in the Session Log.)
 
 - Updated: 2026-10-05
-- Status: Phase 4 half done: JPEG, PNG and WebP all clean end to end, one photo at a time; batches and ZIP not started
-- Works: metadata core for JPEG, PNG and WebP (`src/lib/metadata/`: sniffer, per-format parser, shared EXIF reader, stripper, verifier, `stripMetadata()`, `summarizeMetadata()`); UI in `src/components/`; 291 passing tests; segment maps in `docs/formats/` for all three; 27 fixtures
+- Status: Phase 4 built: JPEG, PNG and WebP, one photo or a batch (many files, folders, ZIPs), ZIP out; waiting on Fahim's review with real photos
+- Works: metadata core (`src/lib/metadata/`), ZIP reader and writer (`src/lib/zip.ts`), folder and ZIP intake with limits (`src/lib/collect-files.ts`, `src/lib/limits.ts`), worker-backed runner with main-thread fallback (`src/lib/clean-runner.ts`, `clean-process.ts`, `clean.worker.ts`), UI in `src/components/` (Workspace, drop zone, queue and inspector, batch result); 356 passing tests; specs in `docs/formats/` for JPEG, PNG, WebP and ZIP; live at black-lens.vercel.app
 - In progress: nothing half-built
-- Next: batches and ZIP (multiple files, folders, ZIP in and out, size limits, a Web Worker so big files never freeze the page); then Phase 5 View mode
-- Watch out: no browser exists in the build sandbox, so layout and colours were never seen by Claude; `next build` needs network for `next/font/google` (fine on Vercel); `npx tsc --noEmit` needs `npm run typegen` first; the sRGB profile Pillow builds embeds its creation time, so re-running `scripts/make-fixtures.py` rewrites the fixtures that carry it (phone-gps.jpg, png-metadata.png and friends): run it only to add a fixture, then `git checkout` the rest, or put new derived fixtures in `scripts/make-derived-fixtures.py` which reads committed files and is safe to re-run; View and Tag tabs are disabled on purpose until their phases; HEIC throws "not supported yet"; the next-themes inline script needs a nonce or hash when the CSP lands in Phase 7; `src/components/button.tsx` sits outside `components/ui` so `shadcn add` cannot overwrite it; `npm audit` reports 9 high findings, all in dev tooling, never run `audit fix --force`; a classic GitHub token is used per command for pushes and must be revoked when the work is done
+- Next: Fahim reviews with real photos; then Phase 5 View mode
+- Watch out: Vercel builds with Turbopack, which cannot be run offline here, so the Web Worker bundling was verified only with webpack (the built page does construct `new Worker(new URL(chunk))` and the worker chunk holds the core with no React); if the Vercel build or the worker misbehaves, the runner already falls back to the main thread; offline production build: `NEXT_FONT_GOOGLE_MOCKED_RESPONSES=<abs path>/scripts/offline-font-mock.cjs npx next build --webpack`; no browser in the sandbox, so Claude has only seen the page through Fahim's screenshots; `npx tsc --noEmit` needs `npm run typegen` first; re-running `scripts/make-fixtures.py` rewrites the fixtures that embed a timestamped ICC profile (use `scripts/make-derived-fixtures.py` for new fixtures built from committed files, it is safe to re-run); View and Tag tabs are disabled on purpose until their phases; HEIC shows "Not supported"; Phase 7 CSP needs `worker-src 'self'` and a nonce or hash for the next-themes inline script; `src/components/button.tsx` sits outside `components/ui` so `shadcn add` cannot overwrite it; `npm audit` reports 9 high findings, all in dev tooling, never run `audit fix --force`; a classic GitHub token is used per command for pushes and must be revoked when the work is done
 
 ## Git Identity (Session Start - run before any commit, every session)
 
@@ -69,6 +69,12 @@ Execute automatically at the start of every session, before the first commit. Ne
 ## Session Log
 
 (Newest first: add each new entry at the top. No cap: never delete or shorten older entries. When a later session reverses a decision, mark the old line `[SUPERSEDED YYYY-MM-DD]`. This section updates automatically at the end of any session with substantive work, independent of whether "update repo" was said.)
+
+### 2026-10-05 (session 6: batches and ZIP)
+- Did: Reviewed Fahim's screenshots (dark and light fine; fixed the left-edge mismatch between header, footer and content). Got an offline production build working (webpack plus mocked fonts) and confirmed the whole app builds. Wrote the ZIP spec, fixtures made by Python zipfile, a ZIP reader and writer, folder and ZIP intake, limits, a Web Worker runner with fallback, and the batch UI (queue left, inspector right, progress, one ZIP out). 
+- Found: five mutants survived at first (a fake worker that kept working after terminate, missing removeIcc propagation test, no UI test for limits, no test that Clean all is disabled when nothing is cleanable, an equivalent mutant in the zip inflate guard). All but the equivalent one now have tests. The old crc32 moved to a shared module
+- Decided: limits 200 photos, 100 MB each, 500 MB total; ZIP stored with a fixed 1980 timestamp; a new drop replaces the queue (no add-more yet)
+- Next: Fahim reviews; then Phase 5 View mode
 
 ### 2026-10-05 (session 5: WebP)
 - Did: Wrote the WebP chunk map, 10 fixtures and failing tests, then the RIFF parser, stripper (RIFF size and VP8X flags rewritten), verifier and summary. Wired WebP into `stripMetadata`, `summarizeMetadata` and the UI. Verified with exiftool, Pillow, a raw secret grep and eight planted bugs
