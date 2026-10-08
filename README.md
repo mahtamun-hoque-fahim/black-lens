@@ -1,5 +1,9 @@
 # Black Lens
 
+![Version](https://img.shields.io/github/v/release/mahtamun-hoque-fahim/black-lens?include_prereleases&style=flat-square&color=dc2626)
+![License](https://img.shields.io/github/license/mahtamun-hoque-fahim/black-lens?style=flat-square)
+![Stars](https://img.shields.io/github/stars/mahtamun-hoque-fahim/black-lens?style=flat-square)
+
 A free, in-browser tool that shows the hidden metadata inside photos, removes the identifying parts, and optionally writes your own author and copyright details. Photos never leave the device.
 
 ## Stack
@@ -62,3 +66,7 @@ src/lib/         utils and the pure metadata core
 ```
 
 For the detailed structure, see PLANNER.md, Architecture.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
