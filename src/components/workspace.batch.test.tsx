@@ -44,7 +44,7 @@ describe("Workspace: batches", () => {
     const inspector = screen.getByRole("region", { name: "Details" })
     expect(within(inspector).getByText("a.jpg")).toBeInTheDocument()
     expect(within(inspector).getByText("This photo shows where it was taken.")).toBeInTheDocument()
-    await user.click(within(rows()[1]).getByRole("button", { name: /clean\.jpg/ }))
+    await user.click(within(rows()[1]).getByRole("button", { name: /^clean\.jpg/ }))
     expect(within(inspector).getByText("clean.jpg")).toBeInTheDocument()
     expect(within(inspector).getByText("This photo has nothing identifying to remove.")).toBeInTheDocument()
   })

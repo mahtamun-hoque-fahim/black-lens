@@ -2,9 +2,10 @@
 
 import { CircleCheck, Download } from "lucide-react"
 import { useEffect, useRef } from "react"
-import { formatBytes, keptLabel, removedLabel } from "@/lib/clean-file"
+import { formatBytes } from "@/lib/clean-file"
 import type { StripMetadataResult } from "@/lib/metadata"
 import { Button } from "./button"
+import { RemovedKept } from "./removed-kept"
 
 export function CleanResult({
   name,
@@ -43,28 +44,7 @@ export function CleanResult({
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div>
-          <h3 className="text-lg font-semibold">Removed</h3>
-          {result.removed.length > 0 ? (
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
-              {result.removed.map((r) => (
-                <li key={r.kind}>{removedLabel(r.kind)}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-muted-foreground">Nothing needed removing.</p>
-          )}
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold">Kept</h3>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
-            {result.kept.map((k) => (
-              <li key={k.kind}>{keptLabel(k)}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      <RemovedKept removed={result.removed} kept={result.kept} />
 
       <div className="flex flex-wrap gap-3">
         <Button variant="secondary" onClick={onDownload}>

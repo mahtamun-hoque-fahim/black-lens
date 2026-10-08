@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest"
 import { collectFromDataTransfer, expandZips, filterCandidates, isPhotoName, planBatch } from "./collect-files"
 import { LIMITS } from "./limits"
 import { fixture } from "./metadata/test-utils"
-import { writeZip, zipToBytes } from "./zip"
 
 const file = (name: string, bytes: Uint8Array = new Uint8Array([1, 2, 3])) => new File([bytes as BlobPart], name)
 const fake = (name: string, size: number) => ({ name, size }) as File
