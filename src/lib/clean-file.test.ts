@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest"
 import { MetadataError, type MetadataSummary } from "@/lib/metadata"
-import { cleanFileName, errorMessage, formatBytes, foundItems, keptLabel, removedLabel } from "./clean-file"
+import { batchZipEntries, chipForError, cleanFileName, errorMessage, formatBytes, foundItems, keptLabel, noticesFor, removedLabel } from "./clean-file"
 
 const base: MetadataSummary = {
   format: "jpeg", location: false, camera: false, dates: false, software: false, author: false,
@@ -65,5 +65,45 @@ describe("errorMessage", () => {
   it("handles surprises without leaking internals", () => {
     expect(errorMessage(new Error("boom stack"))).toBe("Something went wrong while reading this file. Nothing was changed.")
     expect(errorMessage("weird")).toBe("Something went wrong while reading this file. Nothing was changed.")
+  })
+})
+
+describe("chipForError", () => {
+  it("uses the guide's word-only chips", () => {
+    expect(chipForError(new MetadataError("unsupported", "x"))).toBe("Not supported")
+    expect(chipForError(new MetadataError("unknown-format", "x"))).toBe("Not supported")
+    expect(chipForError(new MetadataError("corrupt", "x"))).toBe("Damaged")
+    expect(chipForError(new MetadataError("verification-failed", "x"))).toBe("Problem")
+    expect(chipForError(new Error("boom"))).toBe("Problem")
+  })
+})
+
+describe("noticesFor", () => {
+  it("says nothing when nothing happened", () => {
+    expect(noticesFor({ skipped: 0, truncated: false, zipErrors: [], planNotice: null })).toEqual([])
+  })
+  it("words skipped files for one and for many", () => {
+    expect(noticesFor({ skipped: 1, truncated: false, zipErrors: [], planNotice: null })).toEqual(["1 file was not a photo and was left out."])
+    expect(noticesFor({ skipped: 3, truncated: false, zipErrors: [], planNotice: null })).toEqual(["3 files were not photos and were left out."])
+  })
+  it("passes ZIP errors, folder truncation and limit notices through, in a sensible order", () => {
+    expect(noticesFor({ skipped: 0, truncated: true, zipErrors: ["a.zip: damaged"], planNotice: "Only the first 200 photos were added." })).toEqual([
+      "a.zip: damaged",
+      "That folder is very large, so only the first photos were read.",
+      "Only the first 200 photos were added.",
+    ])
+  })
+})
+
+describe("batchZipEntries", () => {
+  it("keeps names and bytes, and numbers duplicates so nothing is overwritten", () => {
+    const a = new Uint8Array([1])
+    const b = new Uint8Array([2])
+    const entries = batchZipEntries([
+      { outName: "a-clean.jpg", bytes: a },
+      { outName: "a-clean.jpg", bytes: b },
+    ])
+    expect(entries.map((e) => e.name)).toEqual(["a-clean.jpg", "a-clean (2).jpg"])
+    expect(entries[1].bytes).toBe(b)
   })
 })

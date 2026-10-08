@@ -93,7 +93,14 @@ const corrupt = (message: string) => new ZipError("corrupt", message)
  * beyond what its (limit-checked) header claimed.
  */
 async function inflate(data: Uint8Array, expected: number): Promise<Uint8Array> {
-  const stream = new Blob([data as BlobPart]).stream().pipeThrough(new DecompressionStream("deflate-raw"))
+  // A plain ReadableStream works in every browser; Blob.stream() is missing from some older ones.
+  const source = new ReadableStream<BufferSource>({
+    start(controller) {
+      controller.enqueue(data as BufferSource)
+      controller.close()
+    },
+  })
+  const stream = source.pipeThrough(new DecompressionStream("deflate-raw"))
   const reader = stream.getReader()
   const out = new Uint8Array(expected)
   let written = 0

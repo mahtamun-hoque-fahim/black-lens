@@ -1,4 +1,5 @@
 import { MetadataError, type KeptItem, type MetadataSummary, type RemovedItem } from "@/lib/metadata"
+import { uniqueNames, type ZipEntry } from "@/lib/zip"
 
 /** photo.jpg becomes photo-clean.jpg. The original is never overwritten. */
 export function cleanFileName(name: string, fallbackExtension = ".jpg"): string {
@@ -79,4 +80,29 @@ export function errorMessage(error: unknown): string {
     case "unsupported":
       return error.message
   }
+}
+
+/** The word-only chip a failed photo gets in the queue (DESIGN_GUIDE.md: "Not supported" and friends). */
+export function chipForError(error: unknown): string {
+  if (error instanceof MetadataError) {
+    if (error.code === "unsupported" || error.code === "unknown-format") return "Not supported"
+    if (error.code === "corrupt") return "Damaged"
+  }
+  return "Problem"
+}
+
+/** Plain sentences about what happened while the files were gathered. Empty when nothing needs saying. */
+export function noticesFor(info: { skipped: number; truncated: boolean; zipErrors: string[]; planNotice: string | null }): string[] {
+  const notices = [...info.zipErrors]
+  if (info.skipped === 1) notices.push("1 file was not a photo and was left out.")
+  else if (info.skipped > 1) notices.push(`${info.skipped} files were not photos and were left out.`)
+  if (info.truncated) notices.push("That folder is very large, so only the first photos were read.")
+  if (info.planNotice) notices.push(info.planNotice)
+  return notices
+}
+
+/** Entries for the output ZIP. Two photos called a.jpg must not overwrite each other. */
+export function batchZipEntries(done: { outName: string; bytes: Uint8Array }[]): ZipEntry[] {
+  const names = uniqueNames(done.map((d) => d.outName))
+  return done.map((d, i) => ({ name: names[i], bytes: d.bytes }))
 }
