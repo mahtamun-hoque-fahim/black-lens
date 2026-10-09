@@ -158,9 +158,10 @@ Status: `[x]` built; waiting on Fahim's review on real photos
 - [x] "Not supported" handling (HEIC and others): word-only chip in the queue, plain sentence in the inspector
 
 ### Phase 5: View
-Status: `[ ]` pending
+Status: `[x]` built; waiting on Fahim's review with real photos
 
-- [ ] Grouped inspector, GPS warning panel (destructive tokens), copy to clipboard
+- [x] Grouped inspector (8 groups), GPS warning panel (destructive tokens), copy per value and copy everything, no maps and no outbound links, details read lazily in the worker and cached
+- [x] EXIF values, XMP, IPTC, JPEG comments, PNG text (including compressed), WebP chunks; checked against exiftool on 28 files (128 values, 0 disagreements)
 
 ### Phase 6: Tag
 Status: `[ ]` pending
@@ -191,9 +192,9 @@ Status: `[ ]` pending
 ## Next Steps
 
 In order:
-1. Fahim reviews the live page with real photos: one photo, a batch, a folder, a ZIP; light and dark; phone width
-2. Phase 5: View mode (grouped inspector: Location, Camera, Dates, Software, Author; copyable values; GPS warning)
-3. Phase 6: Tag mode (author and copyright writers per format)
+1. Fahim reviews the live page with real photos: View mode on a phone JPEG, a PNG and a WebP; copy buttons; one photo and a batch; light and dark; phone width
+2. Phase 6: Tag mode (v0.3.0): writers for Artist, Copyright, Title, Description, Keywords and Date per format; device-only presets; apply to all
+3. Phase 7: owner dashboard and the CSP (v0.4.0)
 
 ---
 
@@ -214,3 +215,7 @@ In order:
 **2026-10-05.** Not built on purpose: adding more photos to an existing queue (a new drop replaces it), a cancel button during a batch, per-photo downloads from the batch result. Candidates for a later polish pass.
 **2026-10-09.** License: MIT, copyright 2026 Mahtamun Hoque Fahim (the legal name, not the brand). Public repo, open tool.
 **2026-10-09.** Versioning: semantic, below 1.0.0 until the public showcase. v0.1.0 (released: Clean, batches, ZIP) then v0.2.0 View mode, v0.3.0 Tag mode, v0.4.0 owner dashboard and CSP, v1.0.0 after polish, accessibility and the privacy pages. Fixes between are patch releases. 0.x releases are marked as GitHub pre-releases. The CLI and MCP get their own versions later. The v0.1.0 tag was cut before Council POST, a deliberate exception because the site was already public; the LICENSE file landed after the tag and ships in the next release.
+
+**2026-10-09.** View shows no map and builds no link that carries coordinates (BRAIN.md rule): a person who wants a map pastes the coordinates themselves. A photo "has a location" only if it stores GPS latitude or longitude; a GPS section holding only a version number (what phones with location off write) is noted as "Present, but it holds no coordinates" and raises no warning. This fixed a false alarm that shipped in v0.1.0.
+**2026-10-09.** The report is plain data (groups of labelled fields with a source: EXIF, XMP, IPTC, Text, Comment or File) so it crosses the worker boundary and exports as plain text. Labels are unique per group; when two sources use the same label the source is added in brackets. Values over 1 MB, deep lists and XMP past 2 MB are not decoded, so a hostile file cannot make the page allocate gigabytes.
+**2026-10-09.** Two mutation survivors were left on purpose as equivalent: the exact 1/N exposure branch (the fallback gives the same answer) and the IPTC extended-length guard (the next line rejects the same input).
