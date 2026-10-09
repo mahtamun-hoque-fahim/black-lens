@@ -6,6 +6,19 @@ import { Workspace } from "./workspace"
 
 vi.mock("@/lib/download", () => ({ saveBytes: vi.fn(), saveParts: vi.fn() }))
 
+// Record every photo whose details are read, so laziness and caching can be tested.
+const inspected: string[] = []
+vi.mock("@/lib/clean-runner", async (original) => {
+  const real = await original<typeof import("@/lib/clean-runner")>()
+  return {
+    ...real,
+    createRunner: () => {
+      const runner = real.createRunner()
+      return { ...runner, inspect: (file: File) => (inspected.push(file.name), runner.inspect(file)) }
+    },
+  }
+})
+
 const file = (name: string, fx: string, type = "image/jpeg") => new File([fixture(fx) as BlobPart], name, { type })
 
 async function setup(files: File[], openView = true) {
@@ -18,7 +31,10 @@ async function setup(files: File[], openView = true) {
 const details = () => screen.getByRole("region", { name: "Details" })
 const row = (label: string) => within(details()).getByText(label, { selector: "dt" }).closest("div")!
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  inspected.length = 0
+})
 
 describe("View mode", () => {
   it("shows what a photo carries, in groups, with real values", async () => {
@@ -43,7 +59,8 @@ describe("View mode", () => {
     await setup([file("le.jpg", "little-endian.jpg")])
     expect(await within(details()).findByText("GPS data")).toBeInTheDocument()
     expect(within(row("GPS data")).getByText("Present, but it holds no coordinates")).toBeInTheDocument()
-    expect(within(details()).queryByText("This photo shows where it was taken.")).not.toBeInTheDocument()
+    // no warning panel at all, in either wording
+    expect(within(details()).queryByText(/where it was taken|location data/)).not.toBeInTheDocument()
   })
 
   it("names the source when it is not plain EXIF", async () => {
@@ -116,5 +133,23 @@ describe("View mode", () => {
     expect(screen.queryByText("Coordinates")).not.toBeInTheDocument()
     await user.click(screen.getByRole("tab", { name: "View" }))
     await waitFor(() => expect(within(details()).getByText("Coordinates")).toBeInTheDocument())
+  })
+
+  it("reads each photo's details once, only when it is looked at in View, and remembers them", async () => {
+    const user = await setup([file("a.jpg", "phone-gps.jpg"), file("b.jpg", "camera-xmp-iptc.jpg"), file("c.png", "png-metadata.png", "image/png")], false)
+    await screen.findByText("Clean all and download ZIP")
+    expect(inspected).toEqual([]) // nothing read while in Clean mode
+
+    await user.click(screen.getByRole("tab", { name: "View" }))
+    await within(details()).findByText("Coordinates")
+    expect(inspected).toEqual(["a.jpg"]) // only the photo on screen, not all three
+
+    await user.click(within(screen.getByRole("list", { name: "Photos" })).getByRole("button", { name: /^b\.jpg/ }))
+    await within(details()).findByText("Photographer")
+    expect(inspected).toEqual(["a.jpg", "b.jpg"])
+
+    await user.click(within(screen.getByRole("list", { name: "Photos" })).getByRole("button", { name: /^a\.jpg/ }))
+    await within(details()).findByText("Coordinates")
+    expect(inspected).toEqual(["a.jpg", "b.jpg"]) // a.jpg was remembered, not read again
   })
 })
