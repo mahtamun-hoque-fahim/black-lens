@@ -15,7 +15,8 @@ describe("copyText", () => {
     Object.defineProperty(navigator, "clipboard", { value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) }, configurable: true })
     let copied = ""
     document.execCommand = vi.fn(() => {
-      copied = (document.activeElement as HTMLTextAreaElement).value
+      const box = document.querySelector("textarea") as HTMLTextAreaElement
+      copied = box.value.slice(box.selectionStart, box.selectionEnd) // what is selected is what gets copied
       return true
     })
     expect(await copyText("fallback text")).toBe(true)

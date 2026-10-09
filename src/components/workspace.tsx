@@ -12,8 +12,11 @@ import { BatchResult } from "./batch-result"
 import { CleanResult } from "./clean-result"
 import { DropZone } from "./drop-zone"
 import { FileCard } from "./file-card"
-import { ModeTabs } from "./mode-tabs"
+import { ModeTabs, type Mode } from "./mode-tabs"
 import { Notices } from "./notices"
+import { QueueList } from "./queue-list"
+import { ViewPanel } from "./view-panel"
+import { Button } from "./button"
 
 const MIME = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" } as const
 const EXTENSION = { jpeg: ".jpg", png: ".png", webp: ".webp" } as const
@@ -33,6 +36,7 @@ type State =
 
 export function Workspace() {
   const [state, setState] = useState<State>({ step: "empty", error: null, notices: [] })
+  const [mode, setMode] = useState<Mode>("clean") // Clean is the default; View and Clean share the same photos
   const runId = useRef(0) // bumped on every new batch and every reset, so slow old work can tell it is out of date
   const idSeq = useRef(0)
   const runnerRef = useRef<Runner | null>(null)
@@ -49,6 +53,26 @@ export function Workspace() {
 
   const patch = (id: number, change: Partial<Item>) =>
     setState((s) => (s.step === "batch" ? { ...s, items: s.items.map((i) => (i.id === id ? { ...i, ...change } : i)) } : s))
+
+  // View mode reads a photo's details the first time that photo is looked at, not all of them up front.
+  const viewed = state.step === "batch" ? (state.items.length === 1 ? state.items[0] : (state.items.find((i) => i.id === state.selectedId) ?? state.items[0])) : null
+  const needsReport = mode === "view" && !!viewed && (viewed.status === "ready" || viewed.status === "done") && !viewed.report && !viewed.reportError
+  const viewedId = viewed?.id
+  const reading = useRef(new Set<number>()) // photos whose details are already being read, so the effect never asks twice
+  useEffect(() => {
+    if (!needsReport || viewedId === undefined || reading.current.has(viewedId)) return
+    const file = state.step === "batch" ? state.items.find((i) => i.id === viewedId)?.file : undefined
+    if (!file) return
+    const run = runId.current
+    reading.current.add(viewedId)
+    getRunner()
+      .inspect(file)
+      .then((report) => run === runId.current && patch(viewedId, { report }))
+      .catch((e) => run === runId.current && patch(viewedId, { reportError: errorMessage(e) }))
+      .finally(() => reading.current.delete(viewedId))
+    // The trigger is the photo and the mode; state, patch and getRunner are read at the moment it fires.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsReport, viewedId])
 
   async function addFiles(collected: Collected) {
     const run = ++runId.current
@@ -182,12 +206,42 @@ export function Workspace() {
     setState({ step: "empty", error: null, notices: [] })
   }
 
-  const wide = state.step === "batch" && state.items.length > 1
+
+  const many = state.step === "batch" && state.items.length > 1
+  const viewBody =
+    state.step === "empty" ? (
+      <div className="max-w-3xl">
+        <DropZone onCollected={addFiles} error={state.error} notices={state.notices} />
+      </div>
+    ) : many ? (
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">{state.items.length} photos</h2>
+            <Button variant="ghost" onClick={reset}>
+              Clear all
+            </Button>
+          </div>
+          <QueueList items={state.items} selectedId={state.selectedId} onSelect={(selectedId) => setState((x) => (x.step === "batch" ? { ...x, selectedId } : x))} onRemove={removeItem} locked={false} />
+        </div>
+        <section aria-label="Details" className="h-fit rounded-xl border border-border bg-card p-6 text-card-foreground shadow-card">
+          {viewed && <ViewPanel item={viewed} many onClean={() => setMode("clean")} />}
+        </section>
+      </div>
+    ) : (
+      <section aria-label="Details" className="max-w-3xl space-y-4 rounded-xl border border-primary bg-card p-6 text-card-foreground shadow-card">
+        <Notices notices={state.notices} />
+        {viewed && <ViewPanel item={viewed} many={false} onClean={() => setMode("clean")} onReset={reset} />}
+      </section>
+    )
 
   return (
     <ModeTabs
+      mode={mode}
+      onModeChange={setMode}
+      view={viewBody}
       clean={
-        <div className={wide ? undefined : "max-w-3xl"}>
+        <div className={many ? undefined : "max-w-3xl"}>
           {state.step === "empty" && <DropZone onCollected={addFiles} error={state.error} notices={state.notices} />}
 
           {state.step === "batch" && state.items.length === 1 && (
@@ -231,7 +285,7 @@ export function Workspace() {
             </div>
           )}
 
-          {wide && state.phase === "queue" && (
+          {many && state.phase === "queue" && (
             <BatchPanel
               items={state.items}
               selectedId={state.selectedId}
@@ -247,7 +301,7 @@ export function Workspace() {
             />
           )}
 
-          {wide && state.phase === "done" && <BatchResult items={state.items} onDownload={downloadZipAgain} onReset={reset} />}
+          {many && state.phase === "done" && <BatchResult items={state.items} onDownload={downloadZipAgain} onReset={reset} />}
         </div>
       }
     />

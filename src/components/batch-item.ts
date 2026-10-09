@@ -1,4 +1,4 @@
-import type { MetadataSummary, StripMetadataResult } from "@/lib/metadata"
+import type { MetadataReport, MetadataSummary, StripMetadataResult } from "@/lib/metadata"
 
 export type ItemStatus = "reading" | "ready" | "cleaning" | "done" | "error"
 
@@ -15,6 +15,9 @@ export interface Item {
   error?: string
   /** Word-only chip for a failed photo, e.g. "Not supported". */
   chip?: string
+  /** View mode's details, read the first time the photo is looked at. */
+  report?: MetadataReport
+  reportError?: string
 }
 
 export interface Chip {
