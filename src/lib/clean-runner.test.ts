@@ -61,7 +61,7 @@ describe("inspect", () => {
   it("works through the runner on the main thread", async () => {
     const report = await createRunner().inspect(asFile("a.webp", fixture("webp-metadata.webp")))
     expect(report.format).toBe("webp")
-    expect(code(createRunner().inspect(asFile("bad.jpg", fixture("corrupt-truncated.jpg"))))).resolves.toBe("corrupt")
+    expect(await code(createRunner().inspect(asFile("bad.jpg", fixture("corrupt-truncated.jpg"))))).toBe("corrupt")
   })
 })
 
