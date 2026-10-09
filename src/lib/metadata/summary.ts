@@ -38,6 +38,13 @@ const SOFTWARE = new Set([0x0131])
 const AUTHOR = new Set([0x013b, 0x8298, 0xa430]) // artist, copyright, camera owner
 const NOTES = new Set([0x010e, 0x9286]) // image description, user comment
 
+/**
+ * A photo "has a location" only if it stores coordinates (GPS latitude or longitude). Phones with
+ * location turned off still write a GPS section holding just a version number, and calling that a
+ * location would raise the most serious warning for nothing.
+ */
+const hasCoordinates = (entries: ExifEntry[]) => entries.some((e) => e.ifd === "gps" && (e.tag === 0x0002 || e.tag === 0x0004))
+
 const has = (entries: ExifEntry[], tags: Set<number>) =>
   entries.some((e) => (e.ifd === "ifd0" || e.ifd === "exif") && tags.has(e.tag))
 
@@ -45,7 +52,7 @@ export function summarizeJpeg(bytes: Uint8Array): MetadataSummary {
   const info = inspectJpeg(bytes)
   const entries = info.exif?.entries ?? []
 
-  const location = entries.some((e) => e.ifd === "gps")
+  const location = hasCoordinates(entries)
   const camera = has(entries, CAMERA)
   const dates = has(entries, DATES)
   const software = has(entries, SOFTWARE)
@@ -84,7 +91,7 @@ export function summarizePng(bytes: Uint8Array): MetadataSummary {
   const entries = info.exif?.entries ?? []
   const keys = info.textKeywords
 
-  const location = entries.some((e) => e.ifd === "gps")
+  const location = hasCoordinates(entries)
   const camera = has(entries, CAMERA)
   const dates = has(entries, DATES) || info.time || keys.some((k) => PNG_DATE_KEYS.has(k))
   const software = has(entries, SOFTWARE) || keys.some((k) => PNG_SOFTWARE_KEYS.has(k))
@@ -118,7 +125,7 @@ export function summarizeWebp(bytes: Uint8Array): MetadataSummary {
   const info = inspectWebp(bytes)
   const entries = info.exif?.entries ?? []
 
-  const location = entries.some((e) => e.ifd === "gps")
+  const location = hasCoordinates(entries)
   const camera = has(entries, CAMERA)
   const dates = has(entries, DATES)
   const software = has(entries, SOFTWARE)

@@ -5,7 +5,7 @@ import { verifyCleanJpeg } from "./jpeg/verify"
 import { extractImageData as pngImageData } from "./png/parse"
 import { stripPng } from "./png/strip"
 import { verifyCleanPng } from "./png/verify"
-import { sniffFormat, type MetadataFormat } from "./sniff"
+import { requireSupported } from "./support"
 import { summarizeJpeg, summarizePng, summarizeWebp, type MetadataSummary } from "./summary"
 import type { KeptItem, RemovedItem, StripOptions } from "./types"
 import { extractImageData as webpImageData } from "./webp/parse"
@@ -29,14 +29,6 @@ export interface StripMetadataResult {
     imageDataIdentical: boolean
     findings: string[]
   }
-}
-
-/** Throws the right MetadataError for formats we cannot handle (yet); returns the format otherwise. */
-function requireSupported(input: Uint8Array): "jpeg" | "png" | "webp" {
-  const format: MetadataFormat = sniffFormat(input)
-  if (format === "jpeg" || format === "png" || format === "webp") return format
-  if (format === "heic") throw new MetadataError("unsupported", "HEIC photos are not supported yet.")
-  throw new MetadataError("unknown-format", "This does not look like a JPEG, PNG or WebP image.")
 }
 
 /** Look inside a photo and report, by category, what it carries. Changes nothing. */

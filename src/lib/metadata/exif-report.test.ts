@@ -80,6 +80,14 @@ describe("coordinates", () => {
     expect(get(r, "GPS data")).toMatchObject({ group: "location", value: "Present, but it could not be read" })
   })
 
+  it("says plainly when the GPS section holds no coordinates, instead of alarming or hiding it", () => {
+    const refOnly = describeExif(fields(field("gps", 1, 2, "N")))
+    expect(refOnly.location).toBeNull()
+    expect(get(refOnly, "GPS data")).toMatchObject({ group: "location", value: "Present, but it holds no coordinates" })
+    const versionOnly = describeExif(fields(field("gps", 0, 1, [2, 3, 0, 0])))
+    expect(get(versionOnly, "GPS data")!.value).toBe("Present, but it holds no coordinates")
+  })
+
   it("rejects coordinates that cannot exist", () => {
     const r = describeExif(gps("N", [95, 0, 0], "E", [10, 0, 0]))
     expect(r.location).toBeNull()

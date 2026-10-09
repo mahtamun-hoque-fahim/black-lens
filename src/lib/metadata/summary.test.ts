@@ -34,8 +34,23 @@ describe("summarizeMetadata", () => {
     expect(summarizeMetadata(fixture("phone-gps.jpg")).extraData).toBe(false)
   })
 
-  it("reads GPS from a little-endian file", () => {
-    expect(summarizeMetadata(fixture("little-endian.jpg")).location).toBe(true)
+  it("does not call a GPS section with no coordinates a location (phones with location off write one)", () => {
+    // little-endian.jpg has a GPS section holding only a latitude reference letter
+    const s = summarizeMetadata(fixture("little-endian.jpg"))
+    expect(s.location).toBe(false)
+    expect(s.alreadyClean).toBe(false) // it still carries metadata Clean will remove
+    expect(s.camera).toBe(true)
+  })
+
+  it("still calls it a location when the coordinates are there, even if they cannot be read", () => {
+    expect(summarizeMetadata(fixture("phone-gps.jpg")).location).toBe(true)
+    expect(summarizeMetadata(fixture("png-metadata.png")).location).toBe(true)
+    expect(summarizeMetadata(fixture("webp-metadata.webp")).location).toBe(true)
+  })
+
+  it("agrees across formats: the little-endian PNG and WebP are not locations either", () => {
+    expect(summarizeMetadata(fixture("png-little-endian-exif.png")).location).toBe(false)
+    expect(summarizeMetadata(fixture("webp-little-endian-exif.webp")).location).toBe(false)
   })
 
   it("says a file with nothing identifying is already clean", () => {

@@ -31,7 +31,7 @@ const ORIENTATION: Record<number, string> = {
 }
 
 /** "2026:01:02 03:04:05" becomes "2026-01-02 03:04:05". Anything that is not a real date is shown exactly as written. */
-function formatDate(raw: string): string {
+export function formatDate(raw: string): string {
   const m = /^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}:\d{2}:\d{2})/.exec(raw)
   if (!m) return raw
   const month = Number(m[2])
@@ -174,7 +174,10 @@ function describeGps(gps: ExifField[], little: boolean, out: ReportField[]): Rep
       if (altitudeRaw !== null) add("Altitude", `${trim(altitudeRaw, 2)} m ${below ? "below" : "above"} sea level`)
     }
   }
-  if (!location && (at(1) || at(2) || at(3) || at(4))) add("GPS data", "Present, but it could not be read")
+  if (!location) {
+    // Coordinates that are there but unusable are worth a warning; a GPS section with none is just noted.
+    add("GPS data", at(2) || at(4) ? "Present, but it could not be read" : "Present, but it holds no coordinates")
+  }
 
   const clock = numbers(at(7)?.value ?? null)
   const day = asText(at(0x1d)?.value ?? null)

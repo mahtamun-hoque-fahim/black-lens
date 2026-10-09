@@ -53,8 +53,8 @@ describe("buildReport: JPEG", () => {
     expect(find(r, "software", "Creator tool")!.value).toBe("Fixture Editor 9")
     expect(find(r, "notes", "Caption")!.value).toBe("Fixture caption text")
     expect(find(r, "notes", "Comment")).toMatchObject({ value: "Fixture comment: shot at the secret place", source: "Comment" })
-    // EXIF and IPTC both say "Copyright": the labels now say which is which
-    expect(labels(r, "author")).toEqual(expect.arrayContaining(["Copyright (EXIF)", "Copyright notice"]))
+    // different labels from different sources stay as they are; only a real clash gets a source suffix
+    expect(labels(r, "author")).toEqual(expect.arrayContaining(["Copyright", "Copyright notice"]))
     expect(r.location).toBeNull()
   })
 
