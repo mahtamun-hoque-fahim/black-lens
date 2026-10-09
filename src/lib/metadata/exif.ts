@@ -31,12 +31,104 @@ const TAG_GPS_POINTER = 0x8825
 const TAG_INTEROP_POINTER = 0xa005
 const TYPE_SHORT = 3
 
+export type ExifValue = string | number | number[] | Uint8Array | null
+
+export interface ExifField {
+  ifd: IfdName
+  tag: number
+  /** TIFF type: 1 BYTE, 2 ASCII, 3 SHORT, 4 LONG, 5 RATIONAL, 6 SBYTE, 7 UNDEFINED, 8 SSHORT, 9 SLONG, 10 SRATIONAL, 11 FLOAT, 12 DOUBLE */
+  type: number
+  count: number
+  /** Size of the value in bytes, even when it was too big or too odd to decode. */
+  size: number
+  /** Decoded value; null when it is unreadable, points outside the block, or is too big to decode. */
+  value: ExifValue
+  /** For RATIONAL and SRATIONAL: the exact numerator and denominator of each value. */
+  rationals?: [number, number][]
+}
+
+export interface ExifFields {
+  byteOrder: "II" | "MM"
+  fields: ExifField[]
+}
+
+const TYPE_SIZE: Record<number, number> = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8 }
+/** A value bigger than this is not decoded (it is still counted). Real EXIF values are tiny; maker notes are the largest. */
+const MAX_VALUE_BYTES = 1 << 20
+const MAX_ARRAY_ITEMS = 4096
+
+type Decoded = Pick<ExifField, "type" | "count" | "size" | "value" | "rationals">
+
+function decodeValue(tiff: Uint8Array, view: DataView, little: boolean, p: number): Decoded {
+  const type = view.getUint16(p + 2, little)
+  const count = view.getUint32(p + 4, little)
+  const unit = TYPE_SIZE[type]
+  if (!unit) return { type, count, size: 0, value: null }
+
+  const size = unit * count
+  if (count === 0 || size > MAX_VALUE_BYTES) return { type, count, size, value: null }
+
+  // A value of 4 bytes or less lives in the entry itself; anything bigger is stored elsewhere and the entry holds its offset.
+  const at = size <= 4 ? p + 8 : view.getUint32(p + 8, little)
+  if (at + size > tiff.length) return { type, count, size, value: null }
+
+  if (type === 2) {
+    const bytes = tiff.subarray(at, at + size)
+    const end = bytes.indexOf(0)
+    return { type, count, size, value: new TextDecoder("utf-8").decode(end < 0 ? bytes : bytes.subarray(0, end)).trim() }
+  }
+  if (type === 7) return { type, count, size, value: tiff.slice(at, at + size) }
+  if (count > MAX_ARRAY_ITEMS) return { type, count, size, value: null }
+
+  const nums: number[] = []
+  const pairs: [number, number][] = []
+  for (let i = 0; i < count; i++) {
+    const o = at + i * unit
+    switch (type) {
+      case 1:
+        nums.push(tiff[o])
+        break
+      case 6:
+        nums.push(view.getInt8(o))
+        break
+      case 3:
+        nums.push(view.getUint16(o, little))
+        break
+      case 8:
+        nums.push(view.getInt16(o, little))
+        break
+      case 4:
+        nums.push(view.getUint32(o, little))
+        break
+      case 9:
+        nums.push(view.getInt32(o, little))
+        break
+      case 11:
+        nums.push(view.getFloat32(o, little))
+        break
+      case 12:
+        nums.push(view.getFloat64(o, little))
+        break
+      case 5:
+      case 10: {
+        const num = type === 5 ? view.getUint32(o, little) : view.getInt32(o, little)
+        const den = type === 5 ? view.getUint32(o + 4, little) : view.getInt32(o + 4, little)
+        pairs.push([num, den])
+        nums.push(den === 0 ? NaN : num / den)
+        break
+      }
+    }
+  }
+  const value = count === 1 ? nums[0] : nums
+  return pairs.length ? { type, count, size, value, rationals: pairs } : { type, count, size, value }
+}
+
 /**
- * Read the TIFF structure that starts at the byte-order mark (the bytes after
- * "Exif\0\0"). Returns null if it is not readable. Never throws: EXIF in the wild
- * is often damaged, and a damaged block is simply removed, not an error.
+ * Read every entry of the TIFF structure that starts at the byte-order mark (the bytes after
+ * "Exif\0\0"), with its decoded value. Returns null if it is not readable. Never throws: EXIF in
+ * the wild is often damaged, and a damaged entry just has no value.
  */
-export function readExif(tiff: Uint8Array): ExifData | null {
+export function readExifFields(tiff: Uint8Array): ExifFields | null {
   if (tiff.length < 8) return null
   const order = String.fromCharCode(tiff[0], tiff[1])
   if (order !== "II" && order !== "MM") return null
@@ -44,8 +136,7 @@ export function readExif(tiff: Uint8Array): ExifData | null {
   const view = new DataView(tiff.buffer, tiff.byteOffset, tiff.byteLength)
   if (view.getUint16(2, little) !== 42) return null
 
-  const entries: ExifEntry[] = []
-  let orientation: number | null = null
+  const fields: ExifField[] = []
   const seen = new Set<number>() // stops pointer loops in hostile files
 
   // Returns the offset of the next IFD in the chain (0 = none).
@@ -57,15 +148,7 @@ export function readExif(tiff: Uint8Array): ExifData | null {
     for (let n = 0; n < count; n++, p += 12) {
       if (p + 12 > tiff.length) return 0
       const tag = view.getUint16(p, little)
-      entries.push({ ifd, tag })
-
-      if (ifd === "ifd0" && tag === TAG_ORIENTATION && orientation === null) {
-        const type = view.getUint16(p + 2, little)
-        const valueCount = view.getUint32(p + 4, little)
-        // A SHORT that fits in the 4-byte value field sits in its first 2 bytes in either byte order.
-        const value = view.getUint16(p + 8, little)
-        if (type === TYPE_SHORT && valueCount === 1 && value >= 1 && value <= 8) orientation = value
-      }
+      fields.push({ ifd, tag, ...decodeValue(tiff, view, little, p) })
 
       if (ifd === "ifd0" && tag === TAG_EXIF_POINTER) walk(view.getUint32(p + 8, little), "exif")
       else if (ifd === "ifd0" && tag === TAG_GPS_POINTER) walk(view.getUint32(p + 8, little), "gps")
@@ -78,7 +161,24 @@ export function readExif(tiff: Uint8Array): ExifData | null {
   const next = walk(view.getUint32(4, little), "ifd0")
   if (next) walk(next, "ifd1")
 
-  return { byteOrder: order, entries, orientation }
+  return { byteOrder: order, fields }
+}
+
+/**
+ * Which tags are present, and the Orientation. Built on readExifFields so there is one EXIF walker,
+ * not two that could drift apart.
+ */
+export function readExif(tiff: Uint8Array): ExifData | null {
+  const read = readExifFields(tiff)
+  if (!read) return null
+  const orientation = read.fields.find(
+    (f) => f.ifd === "ifd0" && f.tag === TAG_ORIENTATION && f.type === TYPE_SHORT && f.count === 1 && typeof f.value === "number" && f.value >= 1 && f.value <= 8,
+  )
+  return {
+    byteOrder: read.byteOrder,
+    entries: read.fields.map((f) => ({ ifd: f.ifd, tag: f.tag })),
+    orientation: orientation ? (orientation.value as number) : null,
+  }
 }
 
 /**

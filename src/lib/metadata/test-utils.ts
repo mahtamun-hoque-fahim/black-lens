@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import { appSignature, parseJpeg } from "./jpeg/parse"
 
 const FIXTURE_DIR = join(process.cwd(), "src", "lib", "metadata", "__fixtures__")
 
@@ -34,3 +35,11 @@ export const SECRETS = [
   "ftypmp42",
   "xmpmeta",
 ]
+
+/** The bare TIFF block of a JPEG fixture's EXIF segment (after "Exif\0\0"), or null. */
+export function exifTiff(name: string): Uint8Array | null {
+  const bytes = fixture(name)
+  const parsed = parseJpeg(bytes)
+  const seg = parsed.segments.find((s) => appSignature(bytes, s) === "Exif")
+  return seg ? bytes.subarray(seg.dataStart + 6, seg.dataEnd) : null
+}
