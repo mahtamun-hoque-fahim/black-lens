@@ -85,6 +85,9 @@ describe("parseIptc", () => {
     expect(parseIptc(new Uint8Array([0x38, 0x42, 0x49, 0x4d, 0x04, 0x04, 0, 0, 0xff, 0xff, 0xff, 0xff]))).toEqual([])
     const bad = new Uint8Array([...new TextEncoder().encode("8BIM"), 0x04, 0x04, 0, 0, 0, 0, 0, 8, 0x1c, 2, 5, 0xff, 0xff, 1, 2, 3])
     expect(parseIptc(bad)).toEqual([])
+    // a normal-looking record that claims 20 bytes but only has 3
+    const short = new Uint8Array([...new TextEncoder().encode("8BIM"), 0x04, 0x04, 0, 0, 0, 0, 0, 8, 0x1c, 2, 5, 0, 20, 65, 66, 67])
+    expect(parseIptc(short)).toEqual([])
   })
 })
 

@@ -103,6 +103,11 @@ describe("coordinates", () => {
     expect(get(r, "Speed")!.value).toBe("12 km/h")
   })
 
+  it("says magnetic north when the reference says so", () => {
+    const r = describeExif(gps("N", [1, 0, 0], "E", [1, 0, 0], field("gps", 0x10, 2, "M"), field("gps", 0x11, 5, 90)))
+    expect(get(r, "Direction")!.value).toBe("90 degrees from magnetic north")
+  })
+
   it("shows a named place the camera recorded", () => {
     const r = describeExif(gps("N", [1, 0, 0], "E", [1, 0, 0], field("gps", 0x1c, 7, new Uint8Array([...text("ASCII\0\0\0"), ...text("Old harbour")]))))
     expect(get(r, "Place name")!.value).toBe("Old harbour")
@@ -152,6 +157,13 @@ describe("text fields", () => {
   it("leaves a date it does not understand exactly as written", () => {
     expect(get(describeExif(fields(field("exif", 0x9003, 2, "yesterday-ish"))), "Taken")!.value).toBe("yesterday-ish")
     expect(get(describeExif(fields(field("exif", 0x9003, 2, "0000:00:00 00:00:00"))), "Taken")!.value).toBe("0000:00:00 00:00:00")
+  })
+
+  it("leaves an impossible month or day exactly as written", () => {
+    for (const bad of ["2026:13:02 10:00:00", "2026:00:02 10:00:00", "2026:02:32 10:00:00", "2026:02:00 10:00:00"]) {
+      expect(get(describeExif(fields(field("exif", 0x9003, 2, bad))), "Taken")!.value, bad).toBe(bad)
+    }
+    expect(get(describeExif(fields(field("exif", 0x9003, 2, "2026:12:31 23:59:59"))), "Taken")!.value).toBe("2026-12-31 23:59:59")
   })
 
   it("does not show empty values", () => {

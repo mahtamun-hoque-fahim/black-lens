@@ -103,3 +103,31 @@ save(
         zipfile.ZIP_STORED,
     ),
 )
+
+
+# ---------------------------------------------------------------------------
+# Non-square images. Every earlier fixture is 32x32, which cannot tell width from height.
+# ---------------------------------------------------------------------------
+import random as _random
+
+from PIL import Image
+
+
+def wide_image():
+    rnd = _random.Random(11)
+    img = Image.new("RGB", (48, 16))
+    img.putdata([(rnd.randrange(256), rnd.randrange(256), rnd.randrange(256)) for _ in range(48 * 16)])
+    return img
+
+
+def encode(img, fmt, **kw):
+    b = io.BytesIO()
+    img.save(b, fmt, **kw)
+    return b.getvalue()
+
+
+save("wide.jpg", encode(wide_image(), "JPEG", quality=85))
+save("wide.png", encode(wide_image(), "PNG"))
+save("wide-lossy.webp", encode(wide_image(), "WEBP", quality=80))  # simple file: RIFF + VP8
+save("wide-lossless.webp", encode(wide_image(), "WEBP", lossless=True))  # simple file: RIFF + VP8L
+save("wide-extended.webp", encode(wide_image(), "WEBP", quality=80, xmp=b"<x:xmpmeta/>"))  # VP8X canvas

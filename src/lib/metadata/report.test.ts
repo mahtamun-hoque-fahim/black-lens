@@ -1,5 +1,7 @@
 // @vitest-environment node
+import { deflateSync } from "node:zlib"
 import { describe, expect, it } from "vitest"
+import { buildChunk } from "./png/chunk"
 import { MetadataError } from "./errors"
 import { assemble, buildReport, reportToText } from "./report"
 import type { MetadataReport, ReportField } from "./report-types"
@@ -140,5 +142,53 @@ describe("reportToText", () => {
     expect(text).toContain("\nCamera\n  Make: FixtureCo\n")
     expect(text.endsWith("\n")).toBe(true)
     expect(text).not.toMatch(/—/)
+  })
+})
+
+describe("size is width by height, in every format and layout", () => {
+  it.each(["wide.jpg", "wide.png", "wide-lossy.webp", "wide-lossless.webp", "wide-extended.webp"])("%s is 48 x 16", async (name) => {
+    expect(find(await buildReport(fixture(name)), "picture", "Size")!.value).toBe("48 x 16 pixels")
+  })
+})
+
+describe("PNG text chunks of every kind", () => {
+  const latin = (s: string) => Uint8Array.from(Array.from(s, (c) => c.charCodeAt(0)))
+  const utf8 = (s: string) => new TextEncoder().encode(s)
+  const cat = (...parts: Uint8Array[]) => Uint8Array.from(parts.flatMap((p) => Array.from(p)))
+  const withChunk = (type: string, data: Uint8Array) => {
+    const png = fixture("png-clean.png")
+    const at = 8 + 25 // signature + IHDR
+    return cat(png.subarray(0, at), buildChunk(type, data), png.subarray(at))
+  }
+  const report = (type: string, data: Uint8Array) => buildReport(withChunk(type, data))
+
+  it("labels the standard keywords", async () => {
+    const r = await report("tEXt", cat(latin("Source"), new Uint8Array([0]), latin("Scanner 9")))
+    expect(find(r, "camera", "Source device")).toMatchObject({ value: "Scanner 9", source: "Text" })
+  })
+
+  it("shows other keywords as notes under their own name", async () => {
+    const r = await report("tEXt", cat(latin("Warning"), new Uint8Array([0]), latin("handle with care")))
+    expect(find(r, "notes", "Warning")!.value).toBe("handle with care")
+  })
+
+  it("reads an uncompressed iTXt chunk, skipping its language and translated keyword", async () => {
+    const data = cat(latin("Title"), new Uint8Array([0, 0, 0]), latin("en"), new Uint8Array([0]), utf8("Titre"), new Uint8Array([0]), utf8("Héllo wörld"))
+    expect(find(await report("iTXt", data), "notes", "Title")!.value).toBe("Héllo wörld")
+  })
+
+  it("reads a compressed iTXt chunk", async () => {
+    const data = cat(latin("Description"), new Uint8Array([0, 1, 0]), new Uint8Array([0]), new Uint8Array([0]), new Uint8Array(deflateSync(utf8("zipped note"))))
+    expect(find(await report("iTXt", data), "notes", "Description")!.value).toBe("zipped note")
+  })
+
+  it("only names legacy embedded profiles, never dumps them", async () => {
+    const r = await report("tEXt", cat(latin("Raw profile type exif"), new Uint8Array([0]), latin("\nexif\n  1234\n4578696600")))
+    expect(find(r, "extras", "Embedded profile text (exif)")!.value).toMatch(/^\d+ characters$/)
+  })
+
+  it("survives a compressed chunk that is not really compressed data", async () => {
+    const r = await report("zTXt", cat(latin("Comment"), new Uint8Array([0, 0]), latin("this is not zlib")))
+    expect(find(r, "notes", "Comment")).toBeUndefined()
   })
 })

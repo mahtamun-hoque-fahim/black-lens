@@ -30,6 +30,20 @@ describe("readExifFields (values, not just tag numbers)", () => {
     expect(find(phone, "gps", 0x0001)!.value).toBe("N")
   })
 
+  it("reads negative (signed) rationals as negative numbers", () => {
+    const tiff = buildTiff([{ tag: 0x9204, type: 10, bytes: new Uint8Array([0xff, 0xff, 0xff, 0xfd, 0, 0, 0, 2]) }], "exif") // -3 / 2
+    const f = readExifFields(tiff)!.fields.find((x) => x.tag === 0x9204)!
+    expect(f.value).toBe(-1.5)
+    expect(f.rationals).toEqual([[-3, 2]])
+  })
+
+  it("does not decode a value over 1 MB, but still reports how big it is", () => {
+    const big = new Uint8Array(1.5 * 1024 * 1024).fill(7)
+    const f = readExifFields(buildTiff([{ tag: 0x927c, type: 7, bytes: big }], "ifd0"))!.fields.find((x) => x.tag === 0x927c)!
+    expect(f.value).toBeNull()
+    expect(f.size).toBe(big.length)
+  })
+
   it("reads byte arrays", () => {
     expect(find(phone, "gps", 0x0000)!.value).toEqual([2, 3, 0, 0])
   })
@@ -82,7 +96,7 @@ describe("readExifFields (values, not just tag numbers)", () => {
 
 /** Build a tiny big-endian TIFF with the given entries in one IFD (inline when 4 bytes or less, else after the IFD). */
 function buildTiff(entries: { tag: number; type: number; bytes: Uint8Array }[], ifd: "ifd0" | "exif"): Uint8Array {
-  const sizes: Record<number, number> = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1 }
+  const sizes: Record<number, number> = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 10: 8 }
   const ifdLen = 2 + entries.length * 12 + 4
   let extra = 8 + ifdLen
   const body: number[] = []
@@ -120,10 +134,13 @@ function buildTiff(entries: { tag: number; type: number; bytes: Uint8Array }[], 
       out.push(...e.bytes, ...new Array(4 - e.bytes.length).fill(0))
     } else {
       push32(out, extra)
-      body.push(...e.bytes)
+      for (const b of e.bytes) body.push(b) // a loop, not a spread: a spread of a million items overflows the stack
       extra += e.bytes.length
     }
   }
   push32(out, 0)
-  return new Uint8Array([...out, ...body])
+  const result = new Uint8Array(out.length + body.length)
+  result.set(out)
+  result.set(body, out.length)
+  return result
 }
