@@ -20,11 +20,11 @@ describe("parseXmp", () => {
   it("reads lists written as rdf:Alt, rdf:Seq and rdf:Bag", () => {
     const fields = parseXmp(
       xmp(`><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Harbour at dusk</rdf:li></rdf:Alt></dc:title>
-        <dc:creator><rdf:Seq><rdf:li>Jane Roe</rdf:li><rdf:li>John Doe</rdf:li></rdf:Seq></dc:creator>
+        <dc:creator><rdf:Seq><rdf:li>Amina Rahman</rdf:li><rdf:li>Tariq Hasan</rdf:li></rdf:Seq></dc:creator>
         <dc:subject><rdf:Bag><rdf:li>sea</rdf:li><rdf:li>boats</rdf:li></rdf:Bag></dc:subject>`),
     )
     expect(get(fields, "Title")!.value).toBe("Harbour at dusk")
-    expect(get(fields, "Creator")!.value).toBe("Jane Roe, John Doe")
+    expect(get(fields, "Creator")!.value).toBe("Amina Rahman, Tariq Hasan")
     expect(get(fields, "Keywords")!.value).toBe("sea, boats")
   })
 

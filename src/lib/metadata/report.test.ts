@@ -141,7 +141,7 @@ describe("reportToText", () => {
     expect(text).toContain("\nLocation\n  Coordinates: 22.365067, 91.830033\n")
     expect(text).toContain("\nCamera\n  Make: FixtureCo\n")
     expect(text.endsWith("\n")).toBe(true)
-    expect(text).not.toMatch(/—/)
+    expect(text).not.toMatch(/\u2014/)
   })
 })
 

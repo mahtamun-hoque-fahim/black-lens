@@ -24,11 +24,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // suppressHydrationWarning: next-themes adds the theme class to <html> before React loads
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
-      <body className="flex min-h-dvh flex-col">
+      <body className="relative flex min-h-dvh flex-col">
         <ThemeProvider>
           <a
             href="#main"
-            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:border focus:border-border focus:bg-card focus:px-4 focus:py-2 focus:font-medium focus:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+            className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4 focus-visible:left-4 focus-visible:z-50 focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-4 focus-visible:py-2 focus-visible:font-medium focus-visible:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
           >
             Skip to main content
           </a>

@@ -40,7 +40,7 @@ describe("foundItems", () => {
   })
   it("never uses jargon or em dashes", () => {
     const all = foundItems({ ...base, location: true, camera: true, dates: true, software: true, author: true, notes: true, preview: true, extraData: true, other: true }).join(" ")
-    expect(all).not.toMatch(/—|EXIF|XMP|IPTC|APP1/)
+    expect(all).not.toMatch(/\u2014|EXIF|XMP|IPTC|APP1/)
   })
 })
 
