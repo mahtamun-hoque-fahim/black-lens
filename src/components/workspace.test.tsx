@@ -19,10 +19,10 @@ async function choose(file: File) {
 beforeEach(() => vi.clearAllMocks())
 
 describe("Workspace", () => {
-  it("starts on Clean, with View and Tag not available yet", () => {
+  it("starts on Clean, with View ready and Tag not available yet", () => {
     render(<Workspace />)
     expect(screen.getByRole("tab", { name: "Clean" })).toHaveAttribute("aria-selected", "true")
-    expect(screen.getByRole("tab", { name: /View/ })).toBeDisabled()
+    expect(screen.getByRole("tab", { name: "View" })).toBeEnabled()
     expect(screen.getByRole("tab", { name: /Tag/ })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Choose photos" })).toBeInTheDocument()
   })
