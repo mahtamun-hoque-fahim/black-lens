@@ -51,7 +51,7 @@ describe("BackToTop", () => {
 
   it("scrolls to the top, smoothly unless the person prefers reduced motion", async () => {
     pageHeight(3000)
-    window.matchMedia = ((q: string) => ({ matches: q.includes("reduce"), media: q, addEventListener() {}, removeEventListener() {} })) as typeof window.matchMedia
+    window.matchMedia = ((q: string) => ({ matches: q.includes("reduce"), media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia
     render(<BackToTop />)
     topOnScreen(false)
     await userEvent.setup().click(screen.getByRole("button", { name: "Back to top" }))
