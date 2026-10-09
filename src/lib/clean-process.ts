@@ -1,4 +1,4 @@
-import { MetadataError, stripMetadata, summarizeMetadata, type MetadataSummary, type StripMetadataResult } from "./metadata"
+import { buildReport, MetadataError, stripMetadata, summarizeMetadata, type MetadataReport, type MetadataSummary, type StripMetadataResult } from "./metadata"
 
 /**
  * The one function that does the work. A Web Worker runs it off the main thread so the page never
@@ -8,16 +8,18 @@ import { MetadataError, stripMetadata, summarizeMetadata, type MetadataSummary, 
 
 export type WorkerRequest =
   | { id: number; op: "summarize"; file: File }
+  | { id: number; op: "inspect"; file: File }
   | { id: number; op: "clean"; file: File; removeIcc: boolean }
 
 export type WorkerResponse =
-  | { id: number; ok: true; summary?: MetadataSummary; result?: StripMetadataResult }
+  | { id: number; ok: true; summary?: MetadataSummary; result?: StripMetadataResult; report?: MetadataReport }
   | { id: number; ok: false; error: { code: string; message: string } }
 
 export async function processRequest(req: WorkerRequest): Promise<WorkerResponse> {
   try {
     const bytes = new Uint8Array(await req.file.arrayBuffer())
     if (req.op === "summarize") return { id: req.id, ok: true, summary: summarizeMetadata(bytes) }
+    if (req.op === "inspect") return { id: req.id, ok: true, report: await buildReport(bytes) }
     return { id: req.id, ok: true, result: stripMetadata(bytes, { removeIcc: req.removeIcc }) }
   } catch (e) {
     // Only a plain object can cross the worker boundary, and a stack trace is not for the person to read.

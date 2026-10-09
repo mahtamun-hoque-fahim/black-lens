@@ -16,6 +16,8 @@ export { MetadataError, type MetadataErrorCode } from "./errors"
 export { sniffFormat, type MetadataFormat } from "./sniff"
 export type { KeptItem, RemovedItem, RemovedKind, StripOptions } from "./types"
 export type { MetadataSummary } from "./summary"
+export { buildReport, reportToText } from "./report"
+export type { MetadataReport, ReportField, ReportGroup, ReportLocation } from "./report-types"
 
 export interface StripMetadataResult {
   format: "jpeg" | "png" | "webp"

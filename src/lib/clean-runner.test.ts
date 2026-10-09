@@ -46,6 +46,25 @@ describe("processRequest (the one function both the worker and the fallback run)
   })
 })
 
+describe("inspect", () => {
+  it("builds the report in processRequest, as plain data that can cross a worker boundary", async () => {
+    const res = (await processRequest({ id: 7, op: "inspect", file: asFile("a.jpg", fixture("phone-gps.jpg")) })) as Extract<WorkerResponse, { ok: true }>
+    expect(res.report!.location!.text).toBe("22.365067, 91.830033")
+    expect(structuredClone(res.report)).toEqual(res.report)
+  })
+
+  it("reports errors the same plain way", async () => {
+    const res = await processRequest({ id: 8, op: "inspect", file: asFile("bad.jpg", fixture("corrupt-truncated.jpg")) })
+    expect(res).toEqual({ id: 8, ok: false, error: { code: "corrupt", message: expect.any(String) } })
+  })
+
+  it("works through the runner on the main thread", async () => {
+    const report = await createRunner().inspect(asFile("a.webp", fixture("webp-metadata.webp")))
+    expect(report.format).toBe("webp")
+    expect(code(createRunner().inspect(asFile("bad.jpg", fixture("corrupt-truncated.jpg"))))).resolves.toBe("corrupt")
+  })
+})
+
 describe("createRunner without a Worker (the fallback)", () => {
   it("summarizes and cleans on the main thread", async () => {
     const runner = createRunner()
@@ -154,6 +173,13 @@ describe("createRunner with a Worker", () => {
     expect(b.alreadyClean).toBe(true)
     // and later calls keep working on the main thread
     expect((await runner.summarize(asFile("c.jpg", fixture("phone-gps.jpg")))).location).toBe(true)
+  })
+
+  it("inspects through the worker too", async () => {
+    g.Worker = FakeWorker
+    const report = await createRunner().inspect(asFile("a.png", fixture("png-metadata.png")))
+    expect(report.format).toBe("png")
+    expect(FakeWorker.instances[0].received.map((r) => r.op)).toEqual(["inspect"])
   })
 
   it("dispose stops the worker", () => {
