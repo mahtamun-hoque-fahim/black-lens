@@ -46,6 +46,30 @@ describe("processRequest (the one function both the worker and the fallback run)
   })
 })
 
+const FULL = { artist: "Fahim", copyright: "(c) 2026 Fahim", title: "Harbour", keywords: "sea, boats", date: "2025-07-15" }
+
+describe("tag", () => {
+  it("tags in processRequest and returns bytes plus what was written", async () => {
+    const res = (await processRequest({ id: 11, op: "tag", file: asFile("a.jpg", fixture("phone-gps.jpg")), tags: FULL, removeIcc: false })) as Extract<WorkerResponse, { ok: true }>
+    expect(res.tagged!.written.map((w) => w.label)).toEqual(["Artist", "Copyright", "Title", "Keywords", "Date"])
+    expect(res.tagged!.verification).toMatchObject({ clean: true, imageDataIdentical: true, tagsReadBack: true })
+    expect(structuredClone(res.tagged)).toEqual(res.tagged) // plain data, so it can cross a worker boundary
+  })
+
+  it("reports bad tags with their plain message and code", async () => {
+    const res = await processRequest({ id: 12, op: "tag", file: asFile("a.jpg", fixture("phone-gps.jpg")), tags: { date: "2026-02-30" }, removeIcc: false })
+    expect(res).toEqual({ id: 12, ok: false, error: { code: "invalid-tags", message: "Date must be a real date, like 2026-01-02." } })
+  })
+
+  it("works through the runner on the main thread, and keeps the colour profile unless told otherwise", async () => {
+    const runner = createRunner()
+    const file = asFile("a.png", fixture("png-metadata.png"))
+    expect((await runner.tag(file, FULL, { removeIcc: false })).kept.some((k) => k.kind === "icc")).toBe(true)
+    expect((await runner.tag(file, FULL, { removeIcc: true })).kept.some((k) => k.kind === "icc")).toBe(false)
+    expect(await code(runner.tag(file, {}, { removeIcc: false }))).toBe("invalid-tags")
+  })
+})
+
 describe("inspect", () => {
   it("builds the report in processRequest, as plain data that can cross a worker boundary", async () => {
     const res = (await processRequest({ id: 7, op: "inspect", file: asFile("a.jpg", fixture("phone-gps.jpg")) })) as Extract<WorkerResponse, { ok: true }>
@@ -173,6 +197,15 @@ describe("createRunner with a Worker", () => {
     expect(b.alreadyClean).toBe(true)
     // and later calls keep working on the main thread
     expect((await runner.summarize(asFile("c.jpg", fixture("phone-gps.jpg")))).location).toBe(true)
+  })
+
+  it("tags through the worker too, sending the fields along", async () => {
+    g.Worker = FakeWorker
+    const out = await createRunner().tag(asFile("a.webp", fixture("webp-simple.webp")), FULL, { removeIcc: false })
+    expect(out.format).toBe("webp")
+    const sent = FakeWorker.instances[0].received[0] as { op: string; tags: unknown }
+    expect(sent.op).toBe("tag")
+    expect(sent.tags).toEqual(FULL)
   })
 
   it("inspects through the worker too", async () => {

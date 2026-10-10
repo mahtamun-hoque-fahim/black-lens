@@ -1,11 +1,12 @@
 import { processRequest, type WorkerRequest, type WorkerResponse } from "./clean-process"
-import { MetadataError, type MetadataErrorCode, type MetadataReport, type MetadataSummary, type StripMetadataResult, type StripOptions } from "./metadata"
+import { MetadataError, type MetadataErrorCode, type MetadataReport, type MetadataSummary, type StripMetadataResult, type StripOptions, type TagInput, type TagMetadataResult } from "./metadata"
 
 export { processRequest, type WorkerRequest, type WorkerResponse }
 
 export interface Runner {
   summarize(file: File): Promise<MetadataSummary>
   inspect(file: File): Promise<MetadataReport>
+  tag(file: File, tags: TagInput, options: StripOptions): Promise<TagMetadataResult>
   clean(file: File, options: StripOptions): Promise<StripMetadataResult>
   dispose(): void
 }
@@ -13,8 +14,8 @@ export interface Runner {
 const KNOWN: MetadataErrorCode[] = ["corrupt", "unsupported", "unknown-format", "verification-failed", "invalid-tags"]
 
 /** Turn a response back into a value, or into the same kind of error the core would have thrown. */
-function unwrap(res: WorkerResponse): MetadataSummary | StripMetadataResult | MetadataReport {
-  if (res.ok) return (res.summary ?? res.result ?? res.report)!
+function unwrap(res: WorkerResponse): MetadataSummary | StripMetadataResult | MetadataReport | TagMetadataResult {
+  if (res.ok) return (res.summary ?? res.result ?? res.report ?? res.tagged)!
   if (KNOWN.includes(res.error.code as MetadataErrorCode)) throw new MetadataError(res.error.code as MetadataErrorCode, res.error.message)
   throw new Error(res.error.message)
 }
@@ -70,6 +71,9 @@ export function createRunner(): Runner {
   return {
     async summarize(file) {
       return unwrap(await send({ id: ++nextId, op: "summarize", file })) as MetadataSummary
+    },
+    async tag(file, tags, options) {
+      return unwrap(await send({ id: ++nextId, op: "tag", file, tags, removeIcc: options.removeIcc ?? false })) as TagMetadataResult
     },
     async inspect(file) {
       return unwrap(await send({ id: ++nextId, op: "inspect", file })) as MetadataReport

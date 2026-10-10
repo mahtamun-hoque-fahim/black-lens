@@ -1,4 +1,4 @@
-import { buildReport, MetadataError, stripMetadata, summarizeMetadata, type MetadataReport, type MetadataSummary, type StripMetadataResult } from "./metadata"
+import { buildReport, MetadataError, stripMetadata, summarizeMetadata, tagMetadata, type MetadataReport, type MetadataSummary, type StripMetadataResult, type TagInput, type TagMetadataResult } from "./metadata"
 
 /**
  * The one function that does the work. A Web Worker runs it off the main thread so the page never
@@ -10,15 +10,17 @@ export type WorkerRequest =
   | { id: number; op: "summarize"; file: File }
   | { id: number; op: "inspect"; file: File }
   | { id: number; op: "clean"; file: File; removeIcc: boolean }
+  | { id: number; op: "tag"; file: File; tags: TagInput; removeIcc: boolean }
 
 export type WorkerResponse =
-  | { id: number; ok: true; summary?: MetadataSummary; result?: StripMetadataResult; report?: MetadataReport }
+  | { id: number; ok: true; summary?: MetadataSummary; result?: StripMetadataResult; report?: MetadataReport; tagged?: TagMetadataResult }
   | { id: number; ok: false; error: { code: string; message: string } }
 
 export async function processRequest(req: WorkerRequest): Promise<WorkerResponse> {
   try {
     const bytes = new Uint8Array(await req.file.arrayBuffer())
     if (req.op === "summarize") return { id: req.id, ok: true, summary: summarizeMetadata(bytes) }
+    if (req.op === "tag") return { id: req.id, ok: true, tagged: await tagMetadata(bytes, req.tags, { removeIcc: req.removeIcc }) }
     if (req.op === "inspect") return { id: req.id, ok: true, report: await buildReport(bytes) }
     return { id: req.id, ok: true, result: stripMetadata(bytes, { removeIcc: req.removeIcc }) }
   } catch (e) {

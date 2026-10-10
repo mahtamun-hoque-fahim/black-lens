@@ -9,6 +9,7 @@ const scope = self as unknown as {
 scope.onmessage = async (event) => {
   const response = await processRequest(event.data)
   // Hand the cleaned bytes over instead of copying them: a 50 MB photo then costs nothing to send back.
-  const transfer = response.ok && response.result ? [response.result.bytes.buffer as ArrayBuffer] : []
+  const bytes = response.ok ? (response.result ?? response.tagged)?.bytes : undefined
+  const transfer = bytes ? [bytes.buffer as ArrayBuffer] : []
   scope.postMessage(response, transfer)
 }
