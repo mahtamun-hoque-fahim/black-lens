@@ -78,6 +78,7 @@ export function errorMessage(error: unknown): string {
     case "verification-failed":
       return "The cleaned photo could not be checked, so it was not saved. Your original is untouched."
     case "unsupported":
+    case "invalid-tags":
       return error.message
   }
 }

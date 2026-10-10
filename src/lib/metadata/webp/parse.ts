@@ -115,6 +115,28 @@ export function extractImageData(bytes: Uint8Array): Uint8Array {
   return out
 }
 
+/**
+ * Like extractImageData but without the canvas size in VP8X. Used when a header is ADDED to a simple
+ * file (Tag mode): the picture chunks must be unchanged, and the canvas is checked separately.
+ */
+export function extractPixelChunks(bytes: Uint8Array): Uint8Array {
+  const parts: Uint8Array[] = []
+  for (const c of parseWebp(bytes).chunks) {
+    if (IMAGE_CHUNKS.has(c.type)) parts.push(bytes.subarray(c.offset, c.dataEnd))
+    else if (c.type === "ANMF") {
+      parts.push(bytes.subarray(c.dataStart, c.dataStart + FRAME_HEADER))
+      for (const s of frameChunks(bytes, c)) if (FRAME_ALLOWED.has(s.type)) parts.push(bytes.subarray(s.offset, s.dataEnd))
+    }
+  }
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0))
+  let at = 0
+  for (const p of parts) {
+    out.set(p, at)
+    at += p.length
+  }
+  return out
+}
+
 /** The TIFF structure inside an EXIF chunk. Some writers wrongly keep the "Exif\0\0" prefix; tolerate it. */
 export function exifPayload(bytes: Uint8Array, chunk: WebpChunk): Uint8Array {
   const data = bytes.subarray(chunk.dataStart, chunk.dataEnd)

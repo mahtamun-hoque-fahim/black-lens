@@ -6,8 +6,9 @@
  * - unsupported: a format we recognise but do not handle yet (HEIC, and for now PNG/WebP)
  * - unknown-format: not an image we know at all
  * - verification-failed: we cleaned the file but could not prove it clean, so we refuse to return it
+ * - invalid-tags: Tag mode was given fields it cannot write (none filled in, a date that does not exist, text too long)
  */
-export type MetadataErrorCode = "corrupt" | "unsupported" | "unknown-format" | "verification-failed"
+export type MetadataErrorCode = "corrupt" | "unsupported" | "unknown-format" | "verification-failed" | "invalid-tags"
 
 export class MetadataError extends Error {
   readonly code: MetadataErrorCode

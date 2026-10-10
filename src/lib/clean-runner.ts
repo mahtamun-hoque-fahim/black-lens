@@ -10,7 +10,7 @@ export interface Runner {
   dispose(): void
 }
 
-const KNOWN: MetadataErrorCode[] = ["corrupt", "unsupported", "unknown-format", "verification-failed"]
+const KNOWN: MetadataErrorCode[] = ["corrupt", "unsupported", "unknown-format", "verification-failed", "invalid-tags"]
 
 /** Turn a response back into a value, or into the same kind of error the core would have thrown. */
 function unwrap(res: WorkerResponse): MetadataSummary | StripMetadataResult | MetadataReport {

@@ -19,7 +19,7 @@ const FULL = {
   title: "Harbour at dusk",
   description: "Evening light over the harbour.\nTaken on the pier.",
   keywords: "sea, boats, evening",
-  date: "2026-01-02",
+  date: "2025-07-15", // deliberately not a date any fixture carries, so a leaked original date cannot hide
 }
 
 const JPEGS = ["phone-gps.jpg", "camera-xmp-iptc.jpg", "progressive.jpg", "no-metadata.jpg", "trailing-data.jpg", "cmyk-adobe.jpg", "little-endian.jpg", "wide.jpg"]
@@ -48,13 +48,14 @@ describe.each(ALL)("tagMetadata: %s", (name) => {
     expect(report.location).toBeNull()
     expect(values(report, "author")).toEqual(expect.arrayContaining([FULL.artist, FULL.copyright]))
     expect(values(report, "notes")).toEqual(expect.arrayContaining([FULL.title, FULL.description, "sea, boats, evening"]))
-    expect(values(report, "dates").some((v) => v.startsWith("2026-01-02"))).toBe(true)
+    expect(values(report, "dates").some((v) => v.startsWith("2025-07-15"))).toBe(true)
     for (const g of ["location", "camera", "software", "extras"]) expect(values(report, g), g).toEqual([])
   })
 
   it("keeps none of the original's identifying text", async () => {
     const out = (await tagMetadata(input, FULL)).bytes
-    for (const secret of [...SECRETS, "FXTR", "FixtureOS unknown"]) expect(containsText(out, secret), `found "${secret}"`).toBe(false)
+    // "xmpmeta" is the wrapper of the XMP we write on purpose, so it is not a leak here
+    for (const secret of [...SECRETS.filter((x) => x !== "xmpmeta"), "FXTR", "FixtureOS unknown"]) expect(containsText(out, secret), `found "${secret}"`).toBe(false)
   })
 
   it("keeps the Orientation the photo had", async () => {
@@ -132,7 +133,7 @@ describe("tagMetadata: JPEG layout", () => {
   it("mirrors the ASCII fields into EXIF and the date at midnight", async () => {
     const f = readExifFields(jpegParts((await tagMetadata(fixture("phone-gps.jpg"), FULL)).bytes).exif!)!.fields
     expect(f.find((x) => x.tag === 0x013b)?.value).toBe(FULL.artist)
-    expect(f.find((x) => x.tag === 0x9003)?.value).toBe("2026:01:02 00:00:00")
+    expect(f.find((x) => x.tag === 0x9003)?.value).toBe("2025:07:15 00:00:00")
     expect(f.find((x) => x.tag === 0x0112)?.value).toBe(6)
   })
 })
