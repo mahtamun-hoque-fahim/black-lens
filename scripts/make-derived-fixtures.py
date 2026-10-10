@@ -131,3 +131,15 @@ save("wide.png", encode(wide_image(), "PNG"))
 save("wide-lossy.webp", encode(wide_image(), "WEBP", quality=80))  # simple file: RIFF + VP8
 save("wide-lossless.webp", encode(wide_image(), "WEBP", lossless=True))  # simple file: RIFF + VP8L
 save("wide-extended.webp", encode(wide_image(), "WEBP", quality=80, xmp=b"<x:xmpmeta/>"))  # VP8X canvas
+
+
+# A simple lossless WebP WITH transparency: RIFF + VP8L, no VP8X. The alpha flag lives inside the
+# lossless header, so adding a VP8X header to this file has to read it from there.
+def rgba_wide():
+    rnd = _random.Random(23)
+    img = Image.new("RGBA", (48, 16))
+    img.putdata([(rnd.randrange(256), rnd.randrange(256), rnd.randrange(256), rnd.choice([0, 128, 255])) for _ in range(48 * 16)])
+    return img
+
+
+save("wide-lossless-alpha-simple.webp", encode(rgba_wide(), "WEBP", lossless=True))

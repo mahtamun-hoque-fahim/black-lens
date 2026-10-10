@@ -11,6 +11,8 @@
  * the end of IFD0, describes the embedded thumbnail.
  */
 
+import { buildExifTiff } from "./exif-write"
+
 export type IfdName = "ifd0" | "exif" | "gps" | "interop" | "ifd1"
 
 export interface ExifEntry {
@@ -189,15 +191,6 @@ export function buildOrientationTiff(orientation: number): Uint8Array {
   if (!Number.isInteger(orientation) || orientation < 1 || orientation > 8) {
     throw new RangeError("Orientation must be an integer from 1 to 8.")
   }
-  return new Uint8Array([
-    0x4d, 0x4d, 0x00, 0x2a, // "MM" (big-endian) and the TIFF magic number 42
-    0x00, 0x00, 0x00, 0x08, // IFD0 starts 8 bytes after the byte-order mark
-    0x00, 0x01, // IFD0 has one entry
-    0x01, 0x12, // tag 0x0112, Orientation
-    0x00, 0x03, // type SHORT
-    0x00, 0x00, 0x00, 0x01, // count 1
-    0x00, orientation, 0x00, 0x00, // the value, left-justified in the 4-byte field
-    0x00, 0x00, 0x00, 0x00, // offset of the next IFD: none
-  ])
+  return buildExifTiff({ orientation })! // the general builder, with one entry: the same 26 bytes as ever
 }
 
