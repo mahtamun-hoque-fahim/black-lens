@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react"
 import type { KeptItem, RemovedItem } from "@/lib/metadata"
 import type { Item } from "./batch-item"
 import { Button } from "./button"
+import { WrittenList } from "./written-list"
 import { RemovedKept } from "./removed-kept"
 
 /** Combine what happened across all photos, listing each kind once. */
@@ -31,8 +32,17 @@ export function BatchResult({
   const removed = union<RemovedItem>(done.map((i) => i.result!.removed))
   const kept = union<KeptItem>(done.map((i) => i.result!.kept))
 
-  const title =
-    done.length === 0
+  const tagged = done.some((i) => i.result?.written)
+  // every photo got the same details when the written lists match; otherwise each had its own
+  const lists = done.map((i) => JSON.stringify(i.result?.written ?? []))
+  const sameWritten = tagged && lists.every((l) => l === lists[0])
+  const title = tagged
+    ? done.length === 0
+      ? "No photos could be tagged"
+      : failed.length === 0
+        ? `${done.length} photos cleaned and tagged`
+        : `Cleaned and tagged ${done.length} of ${items.length} photos`
+    : done.length === 0
       ? "No photos could be cleaned"
       : failed.length === 0
         ? `All identifying metadata removed from ${done.length} photos`
@@ -48,8 +58,9 @@ export function BatchResult({
           </h2>
           {done.length > 0 && (
             <p className="mt-2 text-muted-foreground">
-              Each photo was checked again after cleaning: nothing identifying was found, and the image data is unchanged.
-              The ZIP holds the cleaned copies. Your originals are untouched.
+              {tagged
+                ? "Everything identifying was removed from each photo, then only your details were written. Each photo was checked again: the picture is unchanged and your details read back exactly. The ZIP holds the tagged copies. Your originals are untouched."
+                : "Each photo was checked again after cleaning: nothing identifying was found, and the image data is unchanged. The ZIP holds the cleaned copies. Your originals are untouched."}
             </p>
           )}
         </div>
@@ -69,6 +80,8 @@ export function BatchResult({
         </div>
       )}
 
+      {tagged && sameWritten && done[0]?.result?.written && <WrittenList written={done[0].result.written} />}
+      {tagged && !sameWritten && <p className="text-muted-foreground">Each photo got its own details.</p>}
       {done.length > 0 && <RemovedKept removed={removed} kept={kept} />}
 
       <div className="flex flex-wrap gap-3">

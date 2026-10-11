@@ -20,6 +20,10 @@ describe("cleanFileName", () => {
     expect(cleanFileName("")).toBe("photo-clean.jpg")
     expect(cleanFileName("photo", ".png")).toBe("photo-clean.png")
   })
+  it("can name tagged copies", () => {
+    expect(cleanFileName("holiday.jpg", ".jpg", "tagged")).toBe("holiday-tagged.jpg")
+    expect(cleanFileName("noext", ".webp", "tagged")).toBe("noext-tagged.webp")
+  })
 })
 
 describe("formatBytes", () => {

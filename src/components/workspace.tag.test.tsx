@@ -151,8 +151,9 @@ describe("Tag mode: batches", () => {
     await user.click(runButton())
     await screen.findByRole("heading", { name: "2 photos cleaned and tagged" })
     const entries = await readZip(zipToBytes(vi.mocked(saveParts).mock.calls[0][0]), LIMITS)
-    expect(await authors(entries[0].bytes)).toEqual(["First Person"])
-    expect(await authors(entries[1].bytes)).toEqual(["Second Person"])
+    // the name appears twice per photo (EXIF Artist and XMP Creator), so compare the set of names
+    expect(new Set(await authors(entries[0].bytes))).toEqual(new Set(["First Person"]))
+    expect(new Set(await authors(entries[1].bytes))).toEqual(new Set(["Second Person"]))
   })
 
   it("refuses to start when a photo has no details of its own, and names it", async () => {

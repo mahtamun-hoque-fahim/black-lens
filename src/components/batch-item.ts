@@ -1,4 +1,13 @@
-import type { MetadataReport, MetadataSummary, StripMetadataResult } from "@/lib/metadata"
+import type { KeptItem, MetadataReport, MetadataSummary, RemovedItem } from "@/lib/metadata"
+
+/** What a finished photo needs to show: its bytes, what was removed and kept, and, for Tag, what was written. */
+export interface Outcome {
+  format: "jpeg" | "png" | "webp"
+  bytes: Uint8Array
+  removed: RemovedItem[]
+  kept: KeptItem[]
+  written?: { label: string; value: string }[]
+}
 
 export type ItemStatus = "reading" | "ready" | "cleaning" | "done" | "error"
 
@@ -10,7 +19,7 @@ export interface Item {
   size: number
   status: ItemStatus
   summary?: MetadataSummary
-  result?: StripMetadataResult
+  result?: Outcome
   outName?: string
   error?: string
   /** Word-only chip for a failed photo, e.g. "Not supported". */

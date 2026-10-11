@@ -6,6 +6,7 @@ import { Button } from "./button"
 import { FileSummary } from "./file-summary"
 import { IccSwitch } from "./icc-switch"
 import { Notices } from "./notices"
+import { ProgressBar } from "./progress-bar"
 import { QueueList } from "./queue-list"
 import { RemovedKept } from "./removed-kept"
 
@@ -67,7 +68,6 @@ export function BatchPanel({
   const running = progress !== null
   const selected = items.find((i) => i.id === selectedId) ?? items[0]
   const canClean = items.some((i) => i.status === "ready") && !items.some((i) => i.status === "reading")
-  const pct = progress ? Math.round((progress.done / progress.total) * 100) : 0
 
   return (
     <div className="space-y-6">
@@ -92,26 +92,7 @@ export function BatchPanel({
       <div className="space-y-4 rounded-xl border border-border bg-card p-6 text-card-foreground">
         {hasProfile && <IccSwitch checked={removeIcc} onCheckedChange={onRemoveIccChange} label="Also remove the colour profiles" />}
 
-        {running && (
-          <div className="space-y-2">
-            <div
-              role="progressbar"
-              aria-label="Cleaning progress"
-              aria-valuemin={0}
-              aria-valuemax={progress.total}
-              aria-valuenow={progress.done}
-              className="h-2 w-full overflow-hidden rounded-lg bg-muted"
-            >
-              <div
-                className="h-full rounded-lg bg-primary transition-[width] duration-200 ease-out motion-reduce:transition-none"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <p role="status" className="text-sm text-muted-foreground">
-              Cleaning {Math.min(progress.done + 1, progress.total)} of {progress.total}
-            </p>
-          </div>
-        )}
+        {running && <ProgressBar done={progress.done} total={progress.total} label="Cleaning progress" />}
 
         <Button aria-disabled={running || !canClean} onClick={() => !running && canClean && onCleanAll()}>
           {running ? "Cleaning" : "Clean all and download ZIP"}

@@ -2,10 +2,10 @@ import { MetadataError, type KeptItem, type MetadataSummary, type RemovedItem } 
 import { uniqueNames, type ZipEntry } from "@/lib/zip"
 
 /** photo.jpg becomes photo-clean.jpg. The original is never overwritten. */
-export function cleanFileName(name: string, fallbackExtension = ".jpg"): string {
+export function cleanFileName(name: string, fallbackExtension = ".jpg", suffix = "clean"): string {
   const dot = name.lastIndexOf(".")
-  if (dot <= 0) return `${name || "photo"}-clean${fallbackExtension}`
-  return `${name.slice(0, dot)}-clean${name.slice(dot)}`
+  if (dot <= 0) return `${name || "photo"}-${suffix}${fallbackExtension}`
+  return `${name.slice(0, dot)}-${suffix}${name.slice(dot)}`
 }
 
 export function formatBytes(n: number): string {
