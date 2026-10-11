@@ -80,6 +80,43 @@ describe("buildXmp", () => {
   })
 })
 
+/** Strict enough to catch what a lenient reader forgives: stray markup characters in text, and bare ampersands. */
+function wellFormedProblems(xml: string): string[] {
+  const problems: string[] = []
+  const body = xml.replace(/<\?xpacket[^>]*\?>/g, "")
+  const text = body.replace(/<\/?[A-Za-z][^<>]*>/g, "\u0000") // every real tag becomes a marker
+  if (/[<>]/.test(text.replace(/\u0000/g, ""))) problems.push("a bare < or > outside a tag")
+  if (/&(?!(amp|lt|gt|quot|apos);)/.test(text)) problems.push("a bare & that is not an entity")
+  // tags must open and close in order
+  const stack: string[] = []
+  for (const m of body.matchAll(/<(\/?)([A-Za-z][\w:.-]*)[^<>]*?(\/?)>/g)) {
+    if (m[3]) continue
+    if (!m[1]) stack.push(m[2])
+    else if (stack.pop() !== m[2]) problems.push(`mismatched </${m[2]}>`)
+  }
+  if (stack.length) problems.push(`unclosed <${stack[stack.length - 1]}>`)
+  return problems
+}
+
+describe("buildXmp is well-formed XML for any text", () => {
+  const samples = [
+    { artist: "Fish & Chips" },
+    { artist: "AT&T <research> & \"co\" 'x'" },
+    { description: "a < b && c > d\n&amp; &lt; already-escaped-looking &#169;" },
+    { title: "]]> <![CDATA[ x ]]>", keywords: "<k>, &, \"q\", 'a'" },
+    { copyright: "</rdf:li></dc:rights><x/>" },
+  ]
+  it.each(samples.map((s, i) => [i, s] as const))("sample %i", (_, input) => {
+    expect(wellFormedProblems(decode(buildXmp(tags(input))!))).toEqual([])
+  })
+
+  it("the check itself can fail (so a pass means something)", () => {
+    expect(wellFormedProblems("<a>x & y</a>")).toContain("a bare & that is not an entity")
+    expect(wellFormedProblems("<a>x < y</a>").length).toBeGreaterThan(0)
+    expect(wellFormedProblems("<a><b></a>").length).toBeGreaterThan(0)
+  })
+})
+
 describe("isPrintableAscii", () => {
   it("accepts plain ASCII and rejects everything else", () => {
     expect(isPrintableAscii("(c) 2026 Fahim, All rights reserved.")).toBe(true)

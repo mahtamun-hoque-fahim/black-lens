@@ -252,3 +252,43 @@ describe("Tag mode: presets", () => {
     expect(options).toEqual(["Choose a preset", "Good"])
   })
 })
+
+describe("Tag mode: sharing photos with Clean", () => {
+  it("lets a photo that was just cleaned be tagged without adding it again", async () => {
+    const user = await setup([file("phone.jpg", "phone-gps.jpg")], false)
+    await user.click(await screen.findByRole("button", { name: "Clean and download" }))
+    expect(await screen.findByRole("heading", { name: "All identifying metadata removed" })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("tab", { name: "Tag" }))
+    expect(screen.queryByRole("heading", { name: "All identifying metadata removed" })).not.toBeInTheDocument() // Clean's result stays in Clean
+    await type(user, "Artist", "Fahim")
+    await user.click(runButton())
+    expect(await screen.findByRole("heading", { name: "Photo cleaned and tagged" })).toBeInTheDocument()
+    expect(vi.mocked(saveBytes).mock.calls.map((c) => c[1])).toEqual(["phone-clean.jpg", "phone-tagged.jpg"])
+  })
+
+  it("keeps Tag's result in Tag, and offers Clean again in Clean", async () => {
+    const user = await setup([file("phone.jpg", "phone-gps.jpg")])
+    await type(user, "Artist", "Fahim")
+    await user.click(runButton())
+    await screen.findByRole("heading", { name: "Photo cleaned and tagged" })
+    await user.click(screen.getByRole("tab", { name: "Clean" }))
+    expect(await screen.findByRole("button", { name: "Clean and download" })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Photo cleaned and tagged" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("tab", { name: "Tag" }))
+    expect(await screen.findByRole("heading", { name: "Photo cleaned and tagged" })).toBeInTheDocument() // and it is still there
+  })
+
+  it("does the same for a batch: a Clean result does not stand in for Tag", async () => {
+    const user = await setup([file("a.jpg", "phone-gps.jpg"), file("b.jpg", "camera-xmp-iptc.jpg")], false)
+    await user.click(await screen.findByRole("button", { name: "Clean all and download ZIP" }))
+    expect(await screen.findByRole("heading", { name: "All identifying metadata removed from 2 photos" })).toBeInTheDocument()
+    await user.click(screen.getByRole("tab", { name: "Tag" }))
+    expect(await screen.findByRole("switch", { name: /same details to all/i })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: /All identifying metadata removed/ })).not.toBeInTheDocument()
+    await type(user, "Artist", "Fahim")
+    await user.click(runButton())
+    expect(await screen.findByRole("heading", { name: "2 photos cleaned and tagged" })).toBeInTheDocument()
+    expect(vi.mocked(saveParts).mock.calls.map((c) => c[1])).toEqual(["black-lens-clean.zip", "black-lens-tagged.zip"])
+  })
+})

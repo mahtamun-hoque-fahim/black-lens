@@ -5,6 +5,7 @@ import { readExifFields } from "./exif"
 import { inspectJpeg } from "./jpeg/inspect"
 import { jpegParts } from "./jpeg/parts"
 import { buildReport, MetadataError, tagMetadata } from "./index"
+import { checkTagged, pictureUnchanged } from "./tag"
 import { inspectPng } from "./png/inspect"
 import { parsePng } from "./png/parse"
 import { inspectWebp } from "./webp/inspect"
@@ -188,5 +189,112 @@ describe("tagMetadata: WebP layout", () => {
     const out = (await tagMetadata(fixture("wide-lossless-alpha-simple.webp"), FULL)).bytes
     expect(new DataView(out.buffer, out.byteOffset).getUint32(4, true)).toBe(out.length - 8)
     expect(out.length % 2).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------------------------
+// The verifier has to be able to FAIL. These tests hand it deliberately wrong files and reports.
+// ---------------------------------------------------------------------------------------------
+
+const TAGS = normalizeTags(FULL).tags
+const field = (label: string, value: string) => ({ label, value, source: "EXIF" as const })
+const good = (): MetadataReport => ({
+  format: "jpeg",
+  location: null,
+  groups: [
+    { id: "author", label: "Author and copyright", fields: [field("Artist", TAGS.artist), field("Copyright", TAGS.copyright)] },
+    { id: "notes", label: "Captions and notes", fields: [field("Title", TAGS.title), field("Description", TAGS.description), field("Keywords", "sea, boats, evening")] },
+    { id: "dates", label: "Dates", fields: [field("Taken", "2025-07-15 00:00:00"), field("Created", "2025-07-15")] },
+    { id: "picture", label: "Picture", fields: [field("Size", "32 x 32 pixels"), field("Orientation", "Normal")] },
+  ],
+})
+
+describe("checkTagged (the read-back check)", () => {
+  it("accepts a report that holds exactly what was typed", () => {
+    expect(checkTagged(good(), TAGS)).toEqual([])
+  })
+
+  it("flags a location that is still there", () => {
+    const r = good()
+    r.location = { latitude: 1, longitude: 2, altitude: null, text: "1, 2" }
+    expect(checkTagged(r, TAGS)).toContain("A location is still in the file.")
+  })
+
+  it("flags a value nobody typed, such as a camera, a program name or a serial number", () => {
+    for (const [group, label, value] of [["camera", "Make", "FixtureCo"], ["software", "Software", "FixtureOS 1.0"], ["author", "Creator tool", "Some Editor"]] as const) {
+      const r = good()
+      r.groups.push({ id: group, label: group, fields: [field(label, value)] })
+      expect(checkTagged(r, TAGS).join(" "), label).toContain(value)
+    }
+  })
+
+  it("flags anything under Hidden extras, even a harmless-looking line", () => {
+    const r = good()
+    r.groups.push({ id: "extras", label: "Hidden extras", fields: [field("Embedded preview image", "Present")] })
+    expect(checkTagged(r, TAGS).length).toBeGreaterThan(0)
+  })
+
+  it("flags a Picture line that is not a plain picture fact", () => {
+    const r = good()
+    r.groups.find((g) => g.id === "picture")!.fields.push(field("Camera serial", "SN-1"))
+    expect(checkTagged(r, TAGS)).toContain("Unexpected Camera serial")
+  })
+
+  it("accepts the plain picture facts View can show", () => {
+    const r = good()
+    r.groups.find((g) => g.id === "picture")!.fields.push(field("Colour profile", "Embedded (3144 bytes)"), field("Resolution", "300 x 300 pixels per inch"), field("Animation", "3 frames"), field("Colour space", "sRGB"))
+    expect(checkTagged(r, TAGS)).toEqual([])
+  })
+
+  it("flags every typed field that did not come back", () => {
+    for (const label of ["Artist", "Copyright", "Title", "Description", "Keywords", "Date"]) {
+      const r = good()
+      for (const g of r.groups) {
+        g.fields = g.fields.filter((f) => {
+          if (label === "Artist") return f.value !== TAGS.artist
+          if (label === "Copyright") return f.value !== TAGS.copyright
+          if (label === "Title") return f.value !== TAGS.title
+          if (label === "Description") return f.value !== TAGS.description
+          if (label === "Keywords") return f.label !== "Keywords"
+          return !f.value.startsWith("2025-07-15")
+        })
+      }
+      expect(checkTagged(r, TAGS), label).toContain(`${label} could not be read back`)
+    }
+  })
+})
+
+describe("pictureUnchanged (the picture must not move)", () => {
+  const flipInside = (bytes: Uint8Array, from: number, to: number) => {
+    const copy = bytes.slice()
+    copy[Math.floor((from + to) / 2)] ^= 0xff
+    return copy
+  }
+
+  it("is true for a real tagged file of every format and layout", async () => {
+    for (const [format, name] of [["jpeg", "phone-gps.jpg"], ["png", "png-metadata.png"], ["webp", "webp-metadata.webp"], ["webp", "wide-lossy.webp"], ["webp", "wide-lossless-alpha-simple.webp"]] as const) {
+      const out = (await tagMetadata(fixture(name), FULL)).bytes
+      expect(pictureUnchanged(format, fixture(name), out), name).toBe(true)
+    }
+  })
+
+  it("is false when a single byte of the picture changes, in every format", async () => {
+    const jpg = (await tagMetadata(fixture("phone-gps.jpg"), FULL)).bytes
+    const sos = inspectJpeg(jpg).segments.find((s) => s.name === "SOS")!
+    expect(pictureUnchanged("jpeg", fixture("phone-gps.jpg"), flipInside(jpg, sos.offset + 20, sos.offset + sos.size - 4))).toBe(false)
+
+    const png = (await tagMetadata(fixture("png-metadata.png"), FULL)).bytes
+    const idat = parsePng(png).chunks.find((c) => c.type === "IDAT")!
+    expect(pictureUnchanged("png", fixture("png-metadata.png"), flipInside(png, idat.dataStart, idat.dataEnd))).toBe(false)
+
+    const webp = (await tagMetadata(fixture("wide-lossy.webp"), FULL)).bytes
+    const vp8 = inspectWebp(webp).chunks.find((c) => c.type === "VP8 ")!
+    expect(pictureUnchanged("webp", fixture("wide-lossy.webp"), flipInside(webp, vp8.offset + 20, vp8.offset + vp8.size))).toBe(false)
+  })
+
+  it("is false when the WebP canvas size changes even though the picture chunks are identical", async () => {
+    const webp = (await tagMetadata(fixture("wide-lossy.webp"), FULL)).bytes.slice()
+    webp[24] ^= 0x01 // the low byte of the canvas width inside VP8X
+    expect(pictureUnchanged("webp", fixture("wide-lossy.webp"), webp)).toBe(false)
   })
 })

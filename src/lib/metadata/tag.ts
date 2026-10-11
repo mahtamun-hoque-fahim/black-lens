@@ -34,7 +34,7 @@ const PICTURE_LABELS = new Set(["Size", "Colour profile", "Orientation", "Resolu
  * exactly what was asked for: a value nobody typed, a location, anything under Hidden extras, or a
  * typed value that did not come back.
  */
-function checkTagged(report: MetadataReport, tags: Tags): string[] {
+export function checkTagged(report: MetadataReport, tags: Tags): string[] {
   const findings: string[] = []
   const typed = new Set([tags.artist, tags.copyright, tags.title, tags.description, tags.keywords.join(", "), tags.date, `${tags.date} 00:00:00`].filter(Boolean))
 
@@ -79,16 +79,7 @@ export async function tagMetadata(input: Uint8Array, tagInput: TagInput, options
   const report = await buildReport(tagged)
   const findings = checkTagged(report, tags)
 
-  let imageDataIdentical: boolean
-  if (cleaned.format === "webp") {
-    // A header may have been added, so compare the picture chunks and the canvas size separately.
-    const a = webpParts(input).size
-    const b = webpParts(tagged).size
-    imageDataIdentical = same(extractPixelChunks(input), extractPixelChunks(tagged)) && a?.width === b?.width && a?.height === b?.height
-  } else {
-    const data = cleaned.format === "png" ? pngImageData : jpegImageData
-    imageDataIdentical = same(data(input), data(tagged))
-  }
+  const imageDataIdentical = pictureUnchanged(cleaned.format, input, tagged)
 
   if (findings.length > 0 || !imageDataIdentical) {
     throw new MetadataError("verification-failed", "The tagged photo could not be verified, so it was not returned.")
@@ -108,4 +99,17 @@ function same(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
   return true
+}
+
+/**
+ * The picture itself is byte-identical before and after. For WebP a header may have been ADDED to a
+ * simple file, so the picture chunks and the canvas size are compared separately.
+ */
+export function pictureUnchanged(format: "jpeg" | "png" | "webp", before: Uint8Array, after: Uint8Array): boolean {
+  if (format === "webp") {
+    const a = webpParts(before).size
+    const b = webpParts(after).size
+    return same(extractPixelChunks(before), extractPixelChunks(after)) && a?.width === b?.width && a?.height === b?.height
+  }
+  return same((format === "png" ? pngImageData : jpegImageData)(before), (format === "png" ? pngImageData : jpegImageData)(after))
 }
