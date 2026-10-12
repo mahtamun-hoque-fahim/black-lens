@@ -164,9 +164,10 @@ Status: `[x]` built; waiting on Fahim's review with real photos
 - [x] EXIF values, XMP, IPTC, JPEG comments, PNG text (including compressed), WebP chunks; checked against exiftool on 28 files (128 values, 0 disagreements)
 
 ### Phase 6: Tag
-Status: `[ ]` pending
+Status: `[x]` built; waiting on Fahim's review with real photos
 
-- [ ] Writers for the chosen fields per format, device-only presets, apply to all
+- [x] Writers for the six fields in JPEG, PNG and WebP (XMP always; EXIF mirror only for plain ASCII; PNG text chunks; WebP header added to simple files), device-only presets, apply to all or per photo, one ZIP out; spec in `docs/tags.md`
+- [x] Verified: read back with the View reader (only typed values, no location, nothing hidden), picture byte-identical, exiftool reads all six fields on 29 files, 37 XMP packets parse as strict XML, Pillow pixels identical
 
 ### Phase 7: Owner dashboard (gate for the public showcase)
 Status: `[ ]` pending
@@ -192,9 +193,9 @@ Status: `[ ]` pending
 ## Next Steps
 
 In order:
-1. Fahim reviews the live page with real photos: View mode on a phone JPEG, a PNG and a WebP; copy buttons; one photo and a batch; light and dark; phone width
-2. Phase 6: Tag mode (v0.3.0): writers for Artist, Copyright, Title, Description, Keywords and Date per format; device-only presets; apply to all
-3. Phase 7: owner dashboard and the CSP (v0.4.0)
+1. Fahim reviews the live page with real photos: Tag a phone JPEG, a PNG and a WebP; check the result in another program (Windows Explorer details, a phone gallery); try a Bengali name; presets; apply-to-all off; light and dark; phone width
+2. Phase 7: owner dashboard and the CSP (v0.4.0): Neon, Drizzle, Better Auth with signups disabled, a hardened counter endpoint, CSP with `worker-src 'self'` and a nonce or hash for the theme script, privacy page naming the counters
+3. Phase 8: polish, accessibility pass, `/privacy` and `/terms` (v1.0.0)
 
 ---
 
@@ -219,3 +220,6 @@ In order:
 **2026-10-09.** View shows no map and builds no link that carries coordinates (BRAIN.md rule): a person who wants a map pastes the coordinates themselves. A photo "has a location" only if it stores GPS latitude or longitude; a GPS section holding only a version number (what phones with location off write) is noted as "Present, but it holds no coordinates" and raises no warning. This fixed a false alarm that shipped in v0.1.0.
 **2026-10-09.** The report is plain data (groups of labelled fields with a source: EXIF, XMP, IPTC, Text, Comment or File) so it crosses the worker boundary and exports as plain text. Labels are unique per group; when two sources use the same label the source is added in brackets. Values over 1 MB, deep lists and XMP past 2 MB are not decoded, so a hostile file cannot make the page allocate gigabytes.
 **2026-10-09.** Two mutation survivors were left on purpose as equivalent: the exact 1/N exposure branch (the fallback gives the same answer) and the IPTC extended-length guard (the next line rejects the same input).
+**2026-10-10.** Tag = Clean, then write, as two separate steps: the shipped Clean code and its verifier run unchanged on step one, and the writers only ever see an already clean file. Date is a date, not a timestamp: XMP and PNG store `2025-07-15`, and EXIF, which insists on a time, gets `00:00:00` (no time is invented). Over-long text is rejected, never silently cut. Keywords live in XMP only (no IPTC or Windows XP fields). Black Lens never writes its own name, a tool name, an edit history or an ID into a photo.
+**2026-10-10.** Non-ASCII text (Bengali, Arabic, Chinese, accents) goes in XMP and PNG iTXt as UTF-8; EXIF gets a mirror only when the text is plain ASCII, because EXIF text is ASCII by specification. Zero-width joiners are kept (Bengali conjuncts need them); bidirectional overrides and control characters are removed.
+**2026-10-10.** Two Tag mutation survivors were left on purpose as equivalent: the day-of-month check in `isRealDate` (the month check beside it rejects every overflowing day) and escaping `"` in XMP text (a bare quote is legal in XML text, and values never appear in attributes).

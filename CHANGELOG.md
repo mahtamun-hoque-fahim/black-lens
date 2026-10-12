@@ -1,5 +1,30 @@
 # Changelog
 
+## [v0.3.0] 2026-10-10
+
+Tag mode: write your own name and rights into a photo, after everything that identifies it has been removed.
+
+### Added
+- Tag mode. Fill in an Artist, Copyright, Title, Description, Keywords and a Date, and Black Lens cleans the photo exactly as Clean does, then writes only those details. A plain list on screen shows exactly what will be written, and a reminder that everything else is removed first (a39ee08)
+- Works for JPEG, PNG and WebP, one photo or a whole batch, with one ZIP out. Text is written as UTF-8, so names in Bengali, Arabic, Chinese or with accents are kept exactly. EXIF cannot hold those, so it gets a copy only when the text is plain ASCII and every other tool reads the XMP (7dc7709)
+- "Apply the same details to all photos", or switch it off to give each photo its own details (a39ee08)
+- Presets: save a set of details under a name and fill the form from it later. They stay in this browser and are never sent anywhere. If the browser blocks storage the form still works without them (386a25e, a39ee08)
+- The text you type is checked before anything is written: control characters and text that can disguise a name are removed, over-long text is rejected with a plain message instead of being cut, and the date must be a real calendar date (459e47a)
+- Every tagged photo is read back before it is handed over. If a value you did not type, a location, or anything hidden is found, or if one of your details does not come back exactly, or if a single byte of the picture changed, no file is returned (7dc7709, 0f59d7f)
+- A WebP that has no metadata header gets one added, with the right canvas size and transparency flag, so even the simplest WebP files can be tagged (7dc7709)
+- The Tag tab, and a "Written" list on the result screen (a39ee08)
+
+### Changed
+- View, Clean and Tag all work on the same photos. A result shows only in the mode that produced it, so a photo you cleaned is still ready to tag, and tagged files are named `-tagged` (a39ee08)
+- Heavy work for Tag also runs in the background worker (c088913)
+
+### Quality
+- 703 automated tests. exiftool read all six fields back from 29 files in all three formats; a strict XML parser accepted all 37 XMP packets, including ones built from text meant to break XML; Pillow decoded every tagged picture pixel for pixel the same as the original, including all animation frames. About 50 planted bugs were used to find and close gaps in the tests, including a verifier that could never fail until it was given broken input
+- The refinery design and copy linter passes with no findings
+
+### Not yet
+- HEIC photos, the owner dashboard, and the command line and local MCP tools
+
 ## [v0.2.0] 2026-10-09
 
 View mode: see everything a photo gives away before you decide what to do about it. Licensed under MIT.

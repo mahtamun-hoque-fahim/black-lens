@@ -292,9 +292,12 @@ describe("pictureUnchanged (the picture must not move)", () => {
     expect(pictureUnchanged("webp", fixture("wide-lossy.webp"), flipInside(webp, vp8.offset + 20, vp8.offset + vp8.size))).toBe(false)
   })
 
-  it("is false when the WebP canvas size changes even though the picture chunks are identical", async () => {
-    const webp = (await tagMetadata(fixture("wide-lossy.webp"), FULL)).bytes.slice()
-    webp[24] ^= 0x01 // the low byte of the canvas width inside VP8X
-    expect(pictureUnchanged("webp", fixture("wide-lossy.webp"), webp)).toBe(false)
+  it("is false when the WebP canvas width OR height changes even though the picture chunks are identical", async () => {
+    const tagged = (await tagMetadata(fixture("wide-lossy.webp"), FULL)).bytes
+    for (const [what, offset] of [["width", 24], ["height", 27]] as const) {
+      const webp = tagged.slice()
+      webp[offset] ^= 0x01 // the low byte of the canvas width (24) or height (27) inside VP8X
+      expect(pictureUnchanged("webp", fixture("wide-lossy.webp"), webp), what).toBe(false)
+    }
   })
 })
