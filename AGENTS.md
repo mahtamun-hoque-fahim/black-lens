@@ -16,11 +16,11 @@ A free, in-browser tool that shows the hidden metadata inside photos, removes th
 
 (Rewritten at the end of every session with substantive work. Everything here is true today; anything older lives in the Session Log.)
 
-- Updated: 2026-10-10
-- Status: v0.3.0 (Tag mode) built; waiting on Fahim's review with real photos. Phase 7 (owner dashboard and CSP) is next
+- Updated: 2026-10-20
+- Status: v0.3.0 released (Tag mode); Phase 7 started on branch `phase-7-csp`: the CSP is built (proxy.ts, nonce, tested) but not yet seen in a real browser. Fahim's review of Tag mode with real photos is still open
 - Works: Clean, View and Tag for JPEG, PNG and WebP (one photo or batches, folders, ZIPs; one shared queue; worker-backed); metadata core in `src/lib/metadata/` (parsers, EXIF value reader, XMP, IPTC, `buildReport`, `stripMetadata`, `summarizeMetadata`, `tagMetadata`, tag normalisation, XMP and EXIF writers); ZIP in and out; presets in localStorage; 703 passing tests; specs in `docs/formats/` and `docs/tags.md`; refinery passes with 0 findings; live at black-lens.vercel.app
 - In progress: nothing half-built
-- Next: Fahim reviews Tag mode; then Phase 7 (v0.4.0): Neon, Drizzle, Better Auth with signups disabled, hardened counter endpoint, CSP (`worker-src 'self'`, nonce or hash for the next-themes inline script), privacy page naming the counters and what Vercel logs
+- Next: Fahim opens the branch's Vercel preview and checks the browser console for CSP violations (theme toggle, a Clean, a batch, Tag, the worker); then merge; then the rest of Phase 7 (v0.4.0): Neon, Drizzle, Better Auth with signups disabled, hardened counter endpoint, privacy page naming the counters and what Vercel logs (written last, once the counters exist)
 - Watch out: Vercel builds with Turbopack and succeeded for v0.1.0 and v0.2.0, but this sandbox can only build with webpack (offline build: `NEXT_FONT_GOOGLE_MOCKED_RESPONSES=<abs path>/scripts/offline-font-mock.cjs npx next build --webpack`); no browser in the sandbox, so Claude has seen the page only through Fahim's screenshots and has not seen Tag mode at all; `npx tsc --noEmit` needs `npm run typegen` first; chain checks with `&&`, never `;`, or a failing check will not stop a commit; re-running `scripts/make-fixtures.py` rewrites fixtures that embed a timestamped ICC profile (use `scripts/make-derived-fixtures.py` for new fixtures, it reads committed files and is safe to re-run); tag tests use the date 2025-07-15 on purpose, because the fixtures carry 2026-01-02 as their original date and a leaked original date must not hide behind the tagged one; HEIC shows "Not supported"; `npm audit` reports 9 high findings, all in dev tooling, never run `audit fix --force`; a GitHub token is used per command for pushes and releases and must be revoked when the work is done; `src/components/button.tsx` sits outside `components/ui` so `shadcn add` cannot overwrite it
 - Tag writes only through `tagMetadata` (clean first, write second, read back and compare); do not add a second write path
 - Reviewing in other programs is the real test for Tag: check a tagged photo in Windows Explorer's Details tab and a phone gallery, not only in Black Lens
@@ -71,6 +71,13 @@ Execute automatically at the start of every session, before the first commit. Ne
 ## Session Log
 
 (Newest first: add each new entry at the top. No cap: never delete or shorten older entries. When a later session reverses a decision, mark the old line `[SUPERSEDED YYYY-MM-DD]`. This section updates automatically at the end of any session with substantive work, independent of whether "update repo" was said.)
+
+### 2026-10-20 (session 9: CSP)
+- Did: Re-checked the repo against the last chat (clean at v0.3.0, nothing lost). Read Next 16's own CSP guide, then wrote tests first for `src/lib/csp.ts` (policy builder, nonce) and `src/proxy.ts`, then the code. The layout reads the nonce from `x-nonce` and passes it to next-themes. Checked against a real production server: header present, all 12 scripts carry the request's nonce, nonce differs per request, no style element without a nonce
+- Found: Radix writes two inline `style` attributes into the HTML (tab list `outline:none`, tab panel `animation-duration:0s`); a strict `style-src` would block them, so `style-src-attr 'unsafe-inline'` is allowed on purpose (attributes cannot run script and every outbound route is closed)
+- Decided: Option A, strict nonce CSP. Every page now renders per request (no static cache), which the Next docs list as the cost
+- Not done: no browser in the sandbox, so no CSP violation check in a real browser yet
+- Next: Fahim checks the Vercel preview console; then the rest of Phase 7
 
 ### 2026-10-10 (session 8: Tag mode)
 - Did: Reviewed Fahim's View screenshots (View works live; the Vercel Turbopack build with the worker succeeded). Wrote the Tag spec first (`docs/tags.md`), then tag normalisation, XMP and EXIF writers, JPEG, PNG and WebP tag writers, `tagMetadata` with read-back verification, a worker job, presets storage and the Tag screen. Verified with exiftool, a strict XML parser and Pillow

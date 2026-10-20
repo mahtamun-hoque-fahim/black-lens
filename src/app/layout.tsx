@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import { BackToTop } from "@/components/back-to-top"
 import { SiteFooter } from "@/components/site-footer"
@@ -20,12 +21,14 @@ export const metadata: Metadata = {
   description: "Remove hidden metadata from photos in your browser. Nothing is uploaded.",
 }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Set by proxy.ts for this request. Reading it also makes every page render per request, which a nonce needs.
+  const nonce = (await headers()).get("x-nonce") ?? undefined
   return (
     // suppressHydrationWarning: next-themes adds the theme class to <html> before React loads
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <body className="relative flex min-h-dvh flex-col">
-        <ThemeProvider>
+        <ThemeProvider nonce={nonce}>
           <a
             href="#main"
             className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4 focus-visible:left-4 focus-visible:z-50 focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-4 focus-visible:py-2 focus-visible:font-medium focus-visible:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
