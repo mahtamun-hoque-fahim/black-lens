@@ -9,11 +9,15 @@
     "lint": "eslint",
     "typegen": "next typegen",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "owner:sql": "node scripts/owner-sql.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "better-auth": "^1.7.12",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
+    "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.52.0",
     "next": "16.3.8",
     "next-themes": "^0.4.6",
@@ -23,6 +27,7 @@
     "tw-animate-css": "^1.4.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
@@ -32,6 +37,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.2.0",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "eslint-plugin-jsx-a11y": "^6.10.2",

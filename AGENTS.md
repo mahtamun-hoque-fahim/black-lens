@@ -72,6 +72,12 @@ Execute automatically at the start of every session, before the first commit. Ne
 
 (Newest first: add each new entry at the top. No cap: never delete or shorten older entries. When a later session reverses a decision, mark the old line `[SUPERSEDED YYYY-MM-DD]`. This section updates automatically at the end of any session with substantive work, independent of whether "update repo" was said.)
 
+### 2026-10-21 (session 10: owner database, first half)
+- Did: CSP merged to main (preview console checked: the only errors came from the Vercel toolbar and the browser's assistant, none from the app). Branch `phase-7-db`: Drizzle schema (`src/db/schema.ts`: Better Auth tables + `daily_counts` per UTC day and mode), `db/schema.sql` for the Neon SQL Editor, `scripts/owner-sql.mjs` (`npm run owner:sql`: hidden password prompt, prints owner INSERTs with a scrypt hash), `src/lib/auth-config.ts` (sign-up off, 12-char minimum, session IP and user agent always NULL). End-to-end test on in-memory Postgres (PGlite) runs the real schema.sql and owner SQL, then signs in through Better Auth
+- Decided (Fahim): separate new Neon project; the counter records only photos processed per mode (View, Clean, Tag); stored per day; owner email chosen (kept out of the repo); he runs the owner SQL himself in the Neon editor
+- Decided (Claude, open to veto): days in UTC; counter endpoint is unauthenticated by nature, so it is bounded (same-origin only, small batch size, a daily cap) and the dashboard says the numbers are reported by browsers, not verified
+- Next: Fahim creates the Neon project and runs `db/schema.sql` and the owner SQL; then the counter endpoint and client call, `/owner/sign-in`, `/owner`, privacy page, v0.4.0
+
 ### 2026-10-20 (session 9: CSP)
 - Did: Re-checked the repo against the last chat (clean at v0.3.0, nothing lost). Read Next 16's own CSP guide, then wrote tests first for `src/lib/csp.ts` (policy builder, nonce) and `src/proxy.ts`, then the code. The layout reads the nonce from `x-nonce` and passes it to next-themes. Checked against a real production server: header present, all 12 scripts carry the request's nonce, nonce differs per request, no style element without a nonce
 - Found: Radix writes two inline `style` attributes into the HTML (tab list `outline:none`, tab panel `animation-duration:0s`); a strict `style-src` would block them, so `style-src-attr 'unsafe-inline'` is allowed on purpose (attributes cannot run script and every outbound route is closed)
