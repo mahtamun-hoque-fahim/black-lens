@@ -161,13 +161,15 @@ Status: `[ ]` pending
 - [x] Counter endpoint (validated, same-origin, capped, no IPs) and the browser call (branch `phase-7-counter`)
 - [x] CSP with per-request nonce, `connect-src 'self'`, `worker-src 'self'` (merged; preview console checked)
 - [x] `/owner` and `/owner/sign-in` (branch `phase-7-owner`)
-- [ ] Privacy page names the counter and what Vercel logs; then release v0.4.0
+- [x] `/privacy` names the counter and what Vercel logs
+- [ ] Owner sign-in confirmed on production; release v0.4.0
 
 ### Phase 8: Polish and launch checks
 Status: `[ ]` pending
 
 - [ ] Back to top, accessibility pass (WCAG 2.2 AA), test on real phones
-- [ ] `/privacy`, `/terms`, 404, print stylesheet
+- [x] `/privacy`
+- [ ] `/terms`, 404, print stylesheet
 - [ ] compass post-build sequence
 
 ### Phase 9: CLI and local MCP server
