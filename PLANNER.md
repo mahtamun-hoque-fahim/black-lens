@@ -57,38 +57,26 @@
 
 ### Flow 4: Owner checks usage
 1. Owner opens `/owner/sign-in` and signs in (signups are disabled)
-2. `/owner` shows aggregate counts only: runs per day, mode split, format split, file-count buckets
+2. `/owner` shows one number per day and mode: how many photos were processed in View, Clean and Tag (last 30 days), as totals, a chart and a table, with a note that the numbers are reported by browsers and not verified
 3. No filenames, metadata or per-user data exist to show
 
 ---
 
 ## DB Schema
 
-Neon + Drizzle. Used only for the owner dashboard. Proposed, to be confirmed in the dashboard phase. Schema lives in `src/lib/db/schema.ts`.
+Neon + Drizzle, used only for the owner login and one counter. Decided 2026-10-21 (Fahim): a separate Neon project for Black Lens, one counter (photos processed per mode), stored per UTC day. Schema lives in `src/db/schema.ts`; the same statements for the Neon SQL Editor are in `db/schema.sql`.
 
 ### Better Auth tables
-`user`, `session`, `account`, `verification`: standard Better Auth tables. One owner row, created by a seed script.
+`user`, `session`, `account`, `verification`: the standard Better Auth tables. One owner row, created by running the SQL that `npm run owner:sql` prints. The `session` table has `ip_address` and `user_agent` columns because Better Auth defines them; the code always writes NULL there.
 
-### usage_daily
+### daily_counts
 | column | type | notes |
 |---|---|---|
-| id | serial PK | |
 | day | date | UTC day, no time of day |
-| mode | enum | view / clean / tag |
-| fileBucket | enum | 1 / 2-5 / 6-20 / 21-50 / 50+ |
-| runs | integer | incremented by upsert |
+| mode | text | view / clean / tag (checked by the database) |
+| count | integer | photos processed, never negative |
 
-Unique on (day, mode, fileBucket).
-
-### usage_format_daily
-| column | type | notes |
-|---|---|---|
-| id | serial PK | |
-| day | date | |
-| format | enum | jpeg / png / webp |
-| files | integer | incremented by upsert |
-
-Unique on (day, format). No per-run rows, no timestamps finer than a day, no IPs, no filenames.
+Primary key (day, mode). Incremented by one upsert statement, refused above 20,000 per mode per day. No per-run rows, no timestamps finer than a day, no IPs, no filenames, no formats, no visits.
 
 ---
 
@@ -111,11 +99,8 @@ Only the variables the code reads. Every row is also in `.env.example`.
 |---|---|---|---|
 | NEXT_PUBLIC_SITE_URL | yes | Production URL: canonical links, sitemap, OG images | https://black-lens.vercel.app |
 | DATABASE_URL | yes (dashboard phase) | Neon pooled connection | postgresql://...?sslmode=require |
-| DATABASE_URL_UNPOOLED | yes (dashboard phase) | Neon direct connection (migrations) | postgresql://...?sslmode=require |
 | BETTER_AUTH_SECRET | yes (dashboard phase) | Session signing secret (32+ chars) | (openssl rand -base64 32) |
 | BETTER_AUTH_URL | yes (dashboard phase) | Public app URL | https://black-lens.vercel.app |
-| OWNER_EMAIL | seed script only | Email for the single owner account | |
-| OWNER_PASSWORD | seed script only | Password for the single owner account; remove after seeding | |
 
 ---
 
@@ -172,10 +157,11 @@ Status: `[x]` built; waiting on Fahim's review with real photos
 ### Phase 7: Owner dashboard (gate for the public showcase)
 Status: `[ ]` pending
 
-- [ ] Neon, Drizzle schema, Better Auth with signups disabled, owner seed script
+- [x] Neon, Drizzle schema, Better Auth with signups disabled, owner SQL for the Neon editor (`npm run owner:sql`)
 - [x] Counter endpoint (validated, same-origin, capped, no IPs) and the browser call (branch `phase-7-counter`)
-- [x] CSP with per-request nonce, `connect-src 'self'`, `worker-src 'self'` (branch `phase-7-csp`, awaiting a real-browser check)
-- [ ] `/owner` and `/owner/sign-in`; privacy page names the counters and what Vercel logs
+- [x] CSP with per-request nonce, `connect-src 'self'`, `worker-src 'self'` (merged; preview console checked)
+- [x] `/owner` and `/owner/sign-in` (branch `phase-7-owner`)
+- [ ] Privacy page names the counter and what Vercel logs; then release v0.4.0
 
 ### Phase 8: Polish and launch checks
 Status: `[ ]` pending

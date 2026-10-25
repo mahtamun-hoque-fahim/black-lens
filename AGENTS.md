@@ -72,6 +72,14 @@ Execute automatically at the start of every session, before the first commit. Ne
 
 (Newest first: add each new entry at the top. No cap: never delete or shorten older entries. When a later session reverses a decision, mark the old line `[SUPERSEDED YYYY-MM-DD]`. This section updates automatically at the end of any session with substantive work, independent of whether "update repo" was said.)
 
+### 2026-10-25 (session 12: owner pages)
+- Did: Branch `phase-7-owner`. `/owner/sign-in` (form posts to `/api/auth/sign-in/email`), `/owner` (totals per mode, stacked SVG chart drawn with attributes only, accessible table, "reported by browsers, not verified" note, sign out), `src/lib/owner-session.ts`. `/api/auth/[...all]` is an allowlist in front of Better Auth: only POST sign-in/email, POST sign-out, GET get-session; everything else (sign-up, password reset, account changes, session lists) answers 404. Every POST must be same-origin (Better Auth only checks Origin on requests that already carry a cookie, so a cross-site sign-in would have passed). Session cookie is HttpOnly, SameSite=Lax and Secure on https; owner pages are noindex and never cached; sessions never store an IP or browser string; sign-in is rate limited per address (3 per 10 seconds, in memory)
+- Checked on a live production server: signed-out `/owner` redirects to `/owner/sign-in` (307), noindex meta present, all 12 scripts carry the nonce, sign-up and other auth endpoints 404, sign-in with no Origin 403
+- Found while testing: Better Auth skips its own origin check when NODE_ENV is test, so a test of it would have passed for the wrong reason. The same-origin rule is ours now and is tested directly
+- Known limit: the sign-in rate limit is per server instance (memory), so on Vercel it is best effort; a long random password is the real protection
+- Not verified here: a real sign-in on the production site (needs Fahim's password and the Vercel env vars)
+- Next: privacy page (names the counter exactly and what Vercel logs), then the v0.4.0 release (CHANGELOG, version, tag)
+
 ### 2026-10-25 (session 11: counter endpoint)
 - Did: Branch `phase-7-counter`. `POST /api/count` (`src/app/api/count/route.ts`): same-origin only, JSON only, body max 256 bytes, exactly `{mode, n}` (n 1 to 200), daily cap 20,000 per mode, 204 on success, plain 4xx/503 with no body, no cookie, `no-store`, no IP read or logged. Storage is one upsert statement (`src/lib/counter.ts`), so simultaneous calls cannot lose counts; tested on in-memory Postgres. Browser side: `src/lib/report-count.ts` (fire and forget, no cookies, no referrer, never throws) called after a successful Clean or Tag (once per batch, counting only finished photos) and once per photo when View first reads its details
 - Not counted on purpose: adding photos, switching tabs, failed photos, a photo looked at again
