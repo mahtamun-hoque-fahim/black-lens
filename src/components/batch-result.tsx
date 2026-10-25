@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react"
 import type { KeptItem, RemovedItem } from "@/lib/metadata"
 import type { Item } from "./batch-item"
 import { Button } from "./button"
+import { PictureNote } from "./picture-note"
 import { WrittenList } from "./written-list"
 import { RemovedKept } from "./removed-kept"
 
@@ -83,6 +84,7 @@ export function BatchResult({
       {tagged && sameWritten && done[0]?.result?.written && <WrittenList written={done[0].result.written} />}
       {tagged && !sameWritten && <p className="text-muted-foreground">Each photo got its own details.</p>}
       {done.length > 0 && <RemovedKept removed={removed} kept={kept} />}
+      {done.length > 0 && <PictureNote />}
 
       <div className="flex flex-wrap gap-3">
         {done.length > 0 && (

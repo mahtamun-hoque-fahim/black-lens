@@ -155,14 +155,14 @@ Status: `[x]` built; waiting on Fahim's review with real photos
 - [x] Verified: read back with the View reader (only typed values, no location, nothing hidden), picture byte-identical, exiftool reads all six fields on 29 files, 37 XMP packets parse as strict XML, Pillow pixels identical
 
 ### Phase 7: Owner dashboard (gate for the public showcase)
-Status: `[ ]` pending
+Status: `[x]` done (v0.4.0, 2026-10-25)
 
 - [x] Neon, Drizzle schema, Better Auth with signups disabled, owner SQL for the Neon editor (`npm run owner:sql`)
 - [x] Counter endpoint (validated, same-origin, capped, no IPs) and the browser call (branch `phase-7-counter`)
 - [x] CSP with per-request nonce, `connect-src 'self'`, `worker-src 'self'` (merged; preview console checked)
 - [x] `/owner` and `/owner/sign-in` (branch `phase-7-owner`)
 - [x] `/privacy` names the counter and what Vercel logs
-- [ ] Owner sign-in confirmed on production; release v0.4.0
+- [x] Owner sign-in confirmed on production; v0.4.0 released 2026-10-25 (counter path on production still to be seen once)
 
 ### Phase 8: Polish and launch checks
 Status: `[ ]` pending

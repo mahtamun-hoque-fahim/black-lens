@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react"
 import { formatBytes } from "@/lib/clean-file"
 import type { Outcome } from "./batch-item"
 import { Button } from "./button"
+import { PictureNote } from "./picture-note"
 import { RemovedKept } from "./removed-kept"
 import { WrittenList } from "./written-list"
 
@@ -49,6 +50,7 @@ export function CleanResult({
 
       {result.written && <WrittenList written={result.written} />}
       <RemovedKept removed={result.removed} kept={result.kept} />
+      <PictureNote />
 
       <div className="flex flex-wrap gap-3">
         <Button variant="secondary" onClick={onDownload}>

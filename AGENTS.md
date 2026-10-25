@@ -72,9 +72,15 @@ Execute automatically at the start of every session, before the first commit. Ne
 
 (Newest first: add each new entry at the top. No cap: never delete or shorten older entries. When a later session reverses a decision, mark the old line `[SUPERSEDED YYYY-MM-DD]`. This section updates automatically at the end of any session with substantive work, independent of whether "update repo" was said.)
 
+### 2026-10-25 (session 15: v0.4.0 released, first Phase 8 step)
+- Did: Tagged and published v0.4.0 after Fahim's screenshot showed owner sign-in and the dashboard working on production. Added the "does not remove what the picture itself shows" note (`src/components/picture-note.tsx`) to the single, batch and tag results, with tests. Raised vitest hook and test timeouts (`vitest.config.mts`): the full suite once failed to start `auth.integration.test.ts` under load (PGlite start-up passing 10 seconds); three full runs in a row now pass
+- Decided by Claude, open to veto: no `/terms` page (nothing sold, no visitor accounts, MIT covers the code); wording of the note
+- Still unconfirmed on production: one Clean raising the Clean total
+- Next: accessibility pass (aria), print styles for the View report, real-phone test, then the compass post-build sequence; warden will ask for the street address
+
 ### 2026-10-25 (session 14: v0.4.0 prep)
 - Did: Privacy page contact now matches BRAIN.md § Operator (mahtamunhoquefahim@pm.me, plus the GitHub issues link). Version 0.4.0 in package.json and lock, CHANGELOG entry written. 908 tests pass, build clean
-- Held on purpose: the v0.4.0 git tag and GitHub release wait for Fahim to confirm the owner sign-in works on production (total 0, one Clean shows 1, sign out)
+- Released: v0.4.0 tagged on 80151f3 and published (github.com/mahtamun-hoque-fahim/black-lens/releases/tag/v0.4.0) after Fahim's screenshot showed the owner sign-in and dashboard working on production. Still unconfirmed on production: that one Clean actually raises the Clean total (the counter path end to end)
 - Open for Phase 8: terms page (warden says it is only needed with accounts or sales; Black Lens has neither, so this is a decision, not a gap), an on-page note about what Black Lens does not remove (the picture itself, file names), accessibility pass (aria), real-phone test, print styles for the View report, then the compass post-build sequence (waterborne, motion-hive, valley-of-death, sentinel, warden, airborne, humanizer, cave-man, council POST, gh-meta, ticket-checker)
 - BRAIN.md § Operator still has `[CONFIRM: street address]`; warden will ask before launch
 
