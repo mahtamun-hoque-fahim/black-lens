@@ -173,7 +173,7 @@ Status: `[x]` built; waiting on Fahim's review with real photos
 Status: `[ ]` pending
 
 - [ ] Neon, Drizzle schema, Better Auth with signups disabled, owner seed script
-- [ ] Counter endpoint (validated, rate-limited, no IPs)
+- [x] Counter endpoint (validated, same-origin, capped, no IPs) and the browser call (branch `phase-7-counter`)
 - [x] CSP with per-request nonce, `connect-src 'self'`, `worker-src 'self'` (branch `phase-7-csp`, awaiting a real-browser check)
 - [ ] `/owner` and `/owner/sign-in`; privacy page names the counters and what Vercel logs
 

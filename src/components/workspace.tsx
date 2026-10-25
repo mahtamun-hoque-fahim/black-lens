@@ -6,6 +6,7 @@ import { createRunner, type Runner } from "@/lib/clean-runner"
 import { expandZips, planBatch, type Collected } from "@/lib/collect-files"
 import { saveBytes, saveParts } from "@/lib/download"
 import { isEmptyTags, normalizeTags } from "@/lib/metadata"
+import { reportCount } from "@/lib/report-count"
 import { EMPTY_FORM, formToInput, type TagForm } from "@/lib/tag-form"
 import { writeZip } from "@/lib/zip"
 import type { Item, Outcome } from "./batch-item"
@@ -80,7 +81,11 @@ export function Workspace() {
     reading.current.add(viewedId)
     getRunner()
       .inspect(file)
-      .then((report) => run === runId.current && patch(viewedId, { report }))
+      .then((report) => {
+        if (run !== runId.current) return
+        patch(viewedId, { report })
+        void reportCount("view", 1) // once per photo: the details are kept, so looking again does not read again
+      })
       .catch((e) => run === runId.current && patch(viewedId, { reportError: errorMessage(e) }))
       .finally(() => reading.current.delete(viewedId))
     // The trigger is the photo and the mode; state, patch and getRunner are read at the moment it fires.
@@ -174,6 +179,7 @@ export function Workspace() {
       const outName = cleanFileName(item.name, EXTENSION[result.format], SUFFIX[kind])
       saveBytes(result.bytes, outName, MIME[result.format])
       patch(item.id, { status: "done", result, outName })
+      void reportCount(kind, 1)
     } catch (e) {
       if (run !== runId.current) return
       patch(item.id, { status: "ready", error: errorMessage(e) })
@@ -208,7 +214,10 @@ export function Workspace() {
       setState((s) => (s.step === "batch" ? { ...s, progress: { done: count, total: todo.length } } : s))
     }
 
-    if (finished.length > 0) saveParts(writeZip(batchZipEntries(finished)), ZIP_NAMES[kind], "application/zip")
+    if (finished.length > 0) {
+      saveParts(writeZip(batchZipEntries(finished)), ZIP_NAMES[kind], "application/zip")
+      void reportCount(kind, finished.length) // only photos that really finished
+    }
     setState((s) => (s.step === "batch" ? { ...s, phase: "done", doneKind: kind, progress: null } : s))
   }
 

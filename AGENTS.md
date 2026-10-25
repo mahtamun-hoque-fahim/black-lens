@@ -16,7 +16,7 @@ A free, in-browser tool that shows the hidden metadata inside photos, removes th
 
 (Rewritten at the end of every session with substantive work. Everything here is true today; anything older lives in the Session Log.)
 
-- Updated: 2026-10-20
+- Updated: 2026-10-25
 - Status: v0.3.0 released (Tag mode); Phase 7 started on branch `phase-7-csp`: the CSP is built (proxy.ts, nonce, tested) but not yet seen in a real browser. Fahim's review of Tag mode with real photos is still open
 - Works: Clean, View and Tag for JPEG, PNG and WebP (one photo or batches, folders, ZIPs; one shared queue; worker-backed); metadata core in `src/lib/metadata/` (parsers, EXIF value reader, XMP, IPTC, `buildReport`, `stripMetadata`, `summarizeMetadata`, `tagMetadata`, tag normalisation, XMP and EXIF writers); ZIP in and out; presets in localStorage; 703 passing tests; specs in `docs/formats/` and `docs/tags.md`; refinery passes with 0 findings; live at black-lens.vercel.app
 - In progress: nothing half-built
@@ -71,6 +71,13 @@ Execute automatically at the start of every session, before the first commit. Ne
 ## Session Log
 
 (Newest first: add each new entry at the top. No cap: never delete or shorten older entries. When a later session reverses a decision, mark the old line `[SUPERSEDED YYYY-MM-DD]`. This section updates automatically at the end of any session with substantive work, independent of whether "update repo" was said.)
+
+### 2026-10-25 (session 11: counter endpoint)
+- Did: Branch `phase-7-counter`. `POST /api/count` (`src/app/api/count/route.ts`): same-origin only, JSON only, body max 256 bytes, exactly `{mode, n}` (n 1 to 200), daily cap 20,000 per mode, 204 on success, plain 4xx/503 with no body, no cookie, `no-store`, no IP read or logged. Storage is one upsert statement (`src/lib/counter.ts`), so simultaneous calls cannot lose counts; tested on in-memory Postgres. Browser side: `src/lib/report-count.ts` (fire and forget, no cookies, no referrer, never throws) called after a successful Clean or Tag (once per batch, counting only finished photos) and once per photo when View first reads its details
+- Not counted on purpose: adding photos, switching tabs, failed photos, a photo looked at again
+- Known limit: anyone can call the endpoint with a forged Origin, so the numbers are "reported by browsers", not verified. The per-call maximum and daily cap bound the damage. The dashboard must say so
+- Until `DATABASE_URL` is set in Vercel the endpoint answers 503 and the app silently ignores it
+- Next: `/owner/sign-in` and `/owner` (chart from `readDailyCounts`), privacy page, v0.4.0
 
 ### 2026-10-21 (session 10: owner database, first half)
 - Did: CSP merged to main (preview console checked: the only errors came from the Vercel toolbar and the browser's assistant, none from the app). Branch `phase-7-db`: Drizzle schema (`src/db/schema.ts`: Better Auth tables + `daily_counts` per UTC day and mode), `db/schema.sql` for the Neon SQL Editor, `scripts/owner-sql.mjs` (`npm run owner:sql`: hidden password prompt, prints owner INSERTs with a scrypt hash), `src/lib/auth-config.ts` (sign-up off, 12-char minimum, session IP and user agent always NULL). End-to-end test on in-memory Postgres (PGlite) runs the real schema.sql and owner SQL, then signs in through Better Auth
