@@ -1,5 +1,25 @@
 # Changelog
 
+## [v0.4.0] 2026-10-25
+
+A private usage count for the owner, a strict security policy on every page, and a privacy page.
+
+### Added
+- A photo counter. After a photo is viewed, cleaned or tagged, your browser tells Black Lens which of the three it was and how many photos, and nothing else: no file names, no photo data, no details you typed, no cookies, and the counter does not read your IP address. One number is kept per day and mode, capped per day, and anything from another site or in the wrong shape is refused (e49f545)
+- A private owner page at `/owner`, behind a sign-in at `/owner/sign-in`. It shows the totals, a chart and a table, and says plainly that the numbers are reported by browsers and not verified. Nobody can create an account: the only way in is the one owner row, made with `npm run owner:sql`, and every other sign-in, sign-up and password endpoint answers 404. Owner pages are hidden from search engines, and sessions never store an IP address or browser (653a3b6, 082b0fd)
+- A privacy page, linked from the footer, written from what the code actually does: photos stay in the browser, what the counter holds, what the browser saves (theme and Tag presets), no cookies for visitors, and what the host can see (8f51b57)
+- `db/schema.sql`, the database setup to paste into the Neon SQL Editor, and `npm run owner:sql`, which asks for the owner email and a hidden password and prints the SQL for the owner row. Only a hash is printed (082b0fd)
+
+### Changed
+- Every page now carries a strict Content Security Policy with a fresh random value per request: scripts and styles run only if they come from this site, and nothing on a page can send data anywhere else. The `worker-src` rule lets the background worker run from this site only. Pages are therefore built per request instead of ahead of time (115e1ac)
+
+### Quality
+- 908 automated tests. The database, the owner sign-in and the counter are tested end to end on a real Postgres engine running in memory, using the same setup file and owner SQL that go into Neon. Tests found and fixed two problems in my own first version: Better Auth skips its own origin check when running under test, so the same-origin rule is now ours and tested directly; and a sign-in from another site would otherwise have passed
+- Checked against a real production server: every script carries the nonce, the owner page redirects when signed out, the counter and auth endpoints refuse other sites and unknown calls
+
+### Not yet
+- HEIC photos, a terms page, the accessibility pass and real-phone tests, and the command line and local MCP tools
+
 ## [v0.3.0] 2026-10-10
 
 Tag mode: write your own name and rights into a photo, after everything that identifies it has been removed.

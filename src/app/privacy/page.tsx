@@ -7,6 +7,8 @@ export const metadata: Metadata = {
 
 const H2 = "text-xl font-semibold"
 const P = "mt-3 text-muted-foreground"
+const LINK =
+  "font-medium text-foreground underline underline-offset-4 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
 
 export default function PrivacyPage() {
   return (
@@ -77,13 +79,12 @@ export default function PrivacyPage() {
         <section>
           <h2 className={H2}>Questions</h2>
           <p className={P}>
-            If something here is unclear, open an issue on the{" "}
-            <a
-              href="https://github.com/mahtamun-hoque-fahim/black-lens/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground underline underline-offset-4 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-            >
+            If something here is unclear, email{" "}
+            <a href="mailto:mahtamunhoquefahim@pm.me" className={LINK}>
+              mahtamunhoquefahim@pm.me
+            </a>{" "}
+            or open an issue on the{" "}
+            <a href="https://github.com/mahtamun-hoque-fahim/black-lens/issues" target="_blank" rel="noopener noreferrer" className={LINK}>
               project’s GitHub page
             </a>
             .

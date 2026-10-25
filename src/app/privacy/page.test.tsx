@@ -65,11 +65,14 @@ describe("Privacy page", () => {
     expect(screen.getByText(/last updated/i)).toHaveTextContent(/25 October 2026/)
   })
 
-  it("links to the project's issues for questions, safely", () => {
+  it("gives the contact from BRAIN.md and the project's issues, and opens the second one safely", () => {
     render(<PrivacyPage />)
-    const link = within(screen.getByRole("heading", { name: "Questions" }).parentElement!).getByRole("link")
-    expect(link).toHaveAttribute("href", "https://github.com/mahtamun-hoque-fahim/black-lens/issues")
-    expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"))
+    const links = within(screen.getByRole("heading", { name: "Questions" }).parentElement!).getAllByRole("link")
+    expect(links.map((l) => l.getAttribute("href"))).toEqual([
+      "mailto:mahtamunhoquefahim@pm.me",
+      "https://github.com/mahtamun-hoque-fahim/black-lens/issues",
+    ])
+    expect(links[1]).toHaveAttribute("rel", expect.stringContaining("noopener"))
   })
 
   it("follows the house copy rules: no em dashes, no emoji", () => {
